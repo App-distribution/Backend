@@ -1,0 +1,17 @@
+.DS_Store
+
+# IDEs
+.idea/
+*.iml
+
+# Local tooling
+.superpowers/
+
+# Android / Gradle local state
+android/.gradle/
+android/.kotlin/
+android/local.properties
+android/**/build/
+android/**/captures/
+android/.cxx/
+android/**/externalNativeBuild/
