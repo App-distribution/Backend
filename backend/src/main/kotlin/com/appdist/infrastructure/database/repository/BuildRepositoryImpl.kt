@@ -68,7 +68,9 @@ class BuildRepositoryImpl : BuildRepository {
     }
 
     override suspend fun listRecent(workspaceId: UUID, limit: Int): List<Build> = dbQuery {
-        BuildsTable.selectAll()
+        (BuildsTable innerJoin com.appdist.infrastructure.database.tables.ProjectsTable)
+            .selectAll()
+            .where { com.appdist.infrastructure.database.tables.ProjectsTable.workspaceId eq workspaceId }
             .orderBy(BuildsTable.uploadDate, SortOrder.DESC)
             .limit(limit)
             .map { it.toBuild() }
