@@ -10,6 +10,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.jupiter.api.AfterEach
@@ -71,11 +72,21 @@ class MineViewModelTest {
     }
 
     @Test
-    fun `initial state is empty`() = runTest {
-        every { installHistoryDao.getAll() } returns flowOf(emptyList())
-        every { downloadDao.getActiveDownloads() } returns flowOf(emptyList())
+    fun `state updates when download completes and disappears`() = runTest {
+        val historyFlow = MutableStateFlow(fakeHistory)
+        val downloadsFlow = MutableStateFlow(fakeDownloads)
+        every { installHistoryDao.getAll() } returns historyFlow
+        every { downloadDao.getActiveDownloads() } returns downloadsFlow
         val vm = MineViewModel(installHistoryDao, downloadDao)
-        assertEquals(emptyList<InstallHistoryEntity>(), vm.state.value.installHistory)
-        assertEquals(emptyList<DownloadEntity>(), vm.state.value.activeDownloads)
+        vm.state.test {
+            val first = awaitItem()
+            assertEquals(1, first.activeDownloads.size)
+            // Download completes — active list becomes empty
+            downloadsFlow.value = emptyList()
+            val second = awaitItem()
+            assertTrue(second.activeDownloads.isEmpty())
+            assertEquals(1, second.installHistory.size)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

@@ -21,6 +21,7 @@ fun MineScreen(
     viewModel: MineViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val dateFormatter = remember { SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()) }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Мои сборки") }) }
@@ -43,8 +44,15 @@ fun MineScreen(
                     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(download.buildId, style = MaterialTheme.typography.bodyMedium)
+                            val stateLabel = when (download.state) {
+                                "downloading" -> "Загрузка…"
+                                "verifying" -> "Проверка…"
+                                "ready" -> "Готово к установке"
+                                "failed" -> "Ошибка"
+                                else -> download.state
+                            }
                             Text(
-                                download.state,
+                                stateLabel,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -85,8 +93,7 @@ fun MineScreen(
             } else {
                 items(state.installHistory, key = { it.id }) { entry ->
                     val dateStr = remember(entry.installedAt) {
-                        SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
-                            .format(Date(entry.installedAt))
+                        dateFormatter.format(Date(entry.installedAt))
                     }
                     ElevatedCard(
                         onClick = { onBuildClick(entry.buildId) },
