@@ -16,7 +16,8 @@ interface BuildRepository {
         limit: Int = 20,
     ): List<Build>
     suspend fun listRecent(workspaceId: UUID, limit: Int = 20): List<Build>
-    suspend fun update(buildId: UUID, changelog: String?, status: BuildStatus): Build
+    suspend fun update(buildId: UUID, changelog: String?, status: BuildStatus?): Build?
+    suspend fun countByProject(projectId: UUID, channel: ReleaseChannel? = null, search: String? = null): Int
     suspend fun delete(buildId: UUID)
     suspend fun findByChecksum(checksum: String): Build?
     suspend fun unsetLatestInChannel(projectId: UUID, channel: ReleaseChannel)

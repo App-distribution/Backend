@@ -127,14 +127,19 @@ class BuildService(
         projectId: UUID, channel: ReleaseChannel?, search: String?, page: Int, limit: Int
     ): List<Build> = buildRepository.listByProject(projectId, channel, search, page, limit)
 
+    suspend fun countBuilds(projectId: UUID, channel: ReleaseChannel?, search: String?): Int =
+        buildRepository.countByProject(projectId, channel, search)
+
     suspend fun getBuild(buildId: UUID): Build =
         buildRepository.findById(buildId) ?: error("Build not found")
 
-    suspend fun updateBuild(buildId: UUID, changelog: String?, status: BuildStatus, requesterId: UUID): Build {
+    suspend fun updateBuild(buildId: UUID, changelog: String?, status: BuildStatus?, requesterId: UUID): Build {
         val build = buildRepository.update(buildId, changelog, status)
+            ?: throw IllegalArgumentException("Build not found")
         serviceScope.launch {
             runCatching {
-                auditRepository.log(requesterId, "build.update", "build", buildId, mapOf("status" to status.name))
+                auditRepository.log(requesterId, "build.update", "build", buildId,
+                    mapOf("status" to (status?.name ?: "unchanged")))
             }
         }
         return build

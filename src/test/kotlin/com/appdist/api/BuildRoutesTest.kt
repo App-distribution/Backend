@@ -174,11 +174,7 @@ class BuildRoutesTest {
             contentType(ContentType.Application.Json)
             setBody("""{"changelog":"update notes"}""")
         }
-        // BuildService.updateBuild throws when build row not found (Exposed .single() on empty result)
-        // The route does not wrap updateBuild in runCatching, so StatusPages returns 500 —
-        // accept either 404 or 500 depending on whether the route handles the exception.
-        // Current implementation does NOT catch the exception in PATCH, so we expect a 500.
-        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        assertEquals(HttpStatusCode.NotFound, response.status)
     }
 
     @Test
