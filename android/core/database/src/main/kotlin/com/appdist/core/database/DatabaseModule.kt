@@ -20,7 +20,7 @@ object DatabaseModule {
             .fallbackToDestructiveMigration()
             .build()
 
-    @Provides fun provideBuildDao(db: AppDatabase) = db.buildDao()
-    @Provides fun provideInstallHistoryDao(db: AppDatabase) = db.installHistoryDao()
-    @Provides fun provideDownloadDao(db: AppDatabase) = db.downloadDao()
+    @Provides @Singleton fun provideBuildDao(db: AppDatabase) = db.buildDao()
+    @Provides @Singleton fun provideInstallHistoryDao(db: AppDatabase) = db.installHistoryDao()
+    @Provides @Singleton fun provideDownloadDao(db: AppDatabase) = db.downloadDao()
 }

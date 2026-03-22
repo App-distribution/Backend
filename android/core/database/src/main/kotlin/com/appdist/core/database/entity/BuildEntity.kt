@@ -1,9 +1,10 @@
 package com.appdist.core.database.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "builds")
+@Entity(tableName = "builds", indices = [Index(value = ["projectId"])])
 data class BuildEntity(
     @PrimaryKey val id: String,
     val projectId: String,
