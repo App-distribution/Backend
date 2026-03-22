@@ -1,9 +1,11 @@
 package com.appdist.api.routes
 
 import com.appdist.api.dto.*
+import com.appdist.domain.model.UserRole
 import com.appdist.domain.repository.UserRepository
 import com.appdist.plugins.AuthPrincipal
 import com.appdist.plugins.JWT_AUTH
+import com.appdist.plugins.requireRole
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -20,11 +22,12 @@ fun Route.userRoutes(userRepository: UserRepository) {
                 ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found"))
             call.respond(
                 UserDto(
-                    user.id.toString(),
-                    user.email,
-                    user.name,
-                    user.role.name,
-                    user.workspaceId?.toString()
+                    id = user.id.toString(),
+                    email = user.email,
+                    name = user.name,
+                    role = user.role.name,
+                    workspaceId = user.workspaceId?.toString(),
+                    createdAt = user.createdAt.toString(),
                 )
             )
         }
@@ -44,13 +47,35 @@ fun Route.userRoutes(userRepository: UserRepository) {
             val user = userRepository.findById(userId)!!
             call.respond(
                 UserDto(
-                    user.id.toString(),
-                    user.email,
-                    user.name,
-                    user.role.name,
-                    user.workspaceId?.toString()
+                    id = user.id.toString(),
+                    email = user.email,
+                    name = user.name,
+                    role = user.role.name,
+                    workspaceId = user.workspaceId?.toString(),
+                    createdAt = user.createdAt.toString(),
                 )
             )
+        }
+
+        get("/workspaces/{workspaceId}/users") {
+            call.requireRole(UserRole.ADMIN)
+            val workspaceId = try {
+                UUID.fromString(call.parameters["workspaceId"]!!)
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_ID", "Invalid UUID format"))
+                return@get
+            }
+            val users = userRepository.findAllByWorkspace(workspaceId)
+            call.respond(users.map { user ->
+                UserDto(
+                    id = user.id.toString(),
+                    email = user.email,
+                    name = user.name,
+                    role = user.role.name,
+                    workspaceId = user.workspaceId?.toString(),
+                    createdAt = user.createdAt.toString(),
+                )
+            })
         }
     }
 }
