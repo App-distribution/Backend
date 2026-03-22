@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
 
+    implementation(libs.lifecycle.runtime.compose)
     implementation(libs.activity.compose)
     implementation(libs.navigation.compose)
     implementation(libs.workmanager.ktx)

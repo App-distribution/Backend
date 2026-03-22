@@ -1,13 +1,16 @@
 package com.appdist.app.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,7 +18,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import com.appdist.core.datastore.TokenManager
 import com.appdist.feature.auth.ui.login.LoginScreen
 import com.appdist.feature.auth.ui.otp.OtpScreen
 import com.appdist.feature.browse.ui.builds.BuildsScreen
@@ -27,27 +29,30 @@ import com.appdist.feature.settings.ui.PermissionsScreen
 import com.appdist.feature.settings.ui.SettingsScreen
 import com.appdist.feature.upload.ui.UploadScreen
 
-@Composable
-fun AppNavGraph(tokenManager: TokenManager = hiltViewModel<AppNavViewModel>().tokenManager) {
-    val navController = rememberNavController()
-    val isAuthenticated by tokenManager.isAuthenticated.collectAsState(initial = false)
+private val bottomNavRoutes: Set<String> = bottomNavItems.map { it.route }.toSet()
 
-    LaunchedEffect(isAuthenticated) {
-        if (!isAuthenticated) navController.navigate("auth/login") {
-            popUpTo(0) { inclusive = true }
+@Composable
+fun AppNavGraph(viewModel: AppNavViewModel = hiltViewModel()) {
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+
+    if (authState == AuthState.Loading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
         }
+        return
     }
+
+    val navController = rememberNavController()
 
     Scaffold(
         bottomBar = {
             val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-            val showBar = currentRoute in bottomNavItems.map { it.route }
-            if (showBar) BottomNavBar(navController)
+            if (currentRoute in bottomNavRoutes) BottomNavBar(navController)
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = if (isAuthenticated) "home" else "auth/login",
+            startDestination = if (authState == AuthState.Authenticated) "home" else "auth/login",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("auth/login") {
