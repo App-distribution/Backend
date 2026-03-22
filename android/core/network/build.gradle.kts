@@ -11,6 +11,15 @@ android {
     defaultConfig { minSdk = 24 }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
+    buildFeatures { buildConfig = true }
+    buildTypes {
+        getByName("debug") {
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        }
+        getByName("release") {
+            buildConfigField("String", "API_BASE_URL", "\"https://api.appdist.example.com/\"")
+        }
+    }
 }
 dependencies {
     implementation(project(":core:common"))
