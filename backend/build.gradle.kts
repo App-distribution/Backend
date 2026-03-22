@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm") version "2.1.10"
     kotlin("plugin.serialization") version "2.1.10"
     id("io.ktor.plugin") version "3.1.1"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "com.appdist"
@@ -73,4 +74,10 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.shadowJar {
+    manifest {
+        attributes("Main-Class" to "com.appdist.ApplicationKt")
+    }
 }
