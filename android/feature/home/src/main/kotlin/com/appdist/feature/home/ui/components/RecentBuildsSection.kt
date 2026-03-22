@@ -1,6 +1,5 @@
 package com.appdist.feature.home.ui.components
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,19 +19,6 @@ import com.appdist.core.common.model.BuildUi
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-@Composable
-fun RecentBuildsSection(
-    builds: List<BuildUi>,
-    onBuildClick: (String) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Последние сборки", style = MaterialTheme.typography.titleMedium)
-        builds.forEach { build ->
-            BuildListItem(build, onBuildClick)
-        }
-    }
-}
 
 @Composable
 fun BuildListItem(build: BuildUi, onBuildClick: (String) -> Unit) {

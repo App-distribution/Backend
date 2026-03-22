@@ -18,19 +18,6 @@ import androidx.compose.ui.unit.dp
 import com.appdist.feature.home.domain.model.AttentionItem
 
 @Composable
-fun AttentionSection(
-    items: List<AttentionItem>,
-    onBuildClick: (String) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Требует внимания", style = MaterialTheme.typography.titleMedium)
-        items.forEach { item ->
-            AttentionItemCard(item, onBuildClick)
-        }
-    }
-}
-
-@Composable
 fun AttentionItemCard(item: AttentionItem, onBuildClick: (String) -> Unit) {
     when (item) {
         is AttentionItem.MandatoryUpdate -> MandatoryCard(item, onBuildClick)
