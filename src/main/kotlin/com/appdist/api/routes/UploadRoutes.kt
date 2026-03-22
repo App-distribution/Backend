@@ -4,10 +4,12 @@ import com.appdist.api.dto.ErrorResponse
 import com.appdist.api.dto.toDto
 import com.appdist.domain.model.BuildEnvironment
 import com.appdist.domain.model.ReleaseChannel
+import com.appdist.domain.model.UserRole
 import com.appdist.domain.service.BuildService
 import com.appdist.domain.service.UploadRequest
 import com.appdist.plugins.AuthPrincipal
 import com.appdist.plugins.JWT_AUTH
+import com.appdist.plugins.requireRole
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
@@ -21,6 +23,7 @@ import java.util.UUID
 fun Route.uploadRoutes(buildService: BuildService) {
     authenticate(JWT_AUTH) {
         post("/builds/upload") {
+            call.requireRole(UserRole.ADMIN, UserRole.UPLOADER)
             val principal = call.principal<AuthPrincipal>()!!
             val multipart = call.receiveMultipart()
 

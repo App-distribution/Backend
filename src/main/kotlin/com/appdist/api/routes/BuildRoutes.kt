@@ -3,9 +3,11 @@ package com.appdist.api.routes
 import com.appdist.api.dto.*
 import com.appdist.domain.model.BuildStatus
 import com.appdist.domain.model.ReleaseChannel
+import com.appdist.domain.model.UserRole
 import com.appdist.domain.service.BuildService
 import com.appdist.plugins.AuthPrincipal
 import com.appdist.plugins.JWT_AUTH
+import com.appdist.plugins.requireRole
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -55,6 +57,7 @@ fun Route.buildRoutes(buildService: BuildService) {
             }
 
             patch {
+                call.requireRole(UserRole.ADMIN, UserRole.UPLOADER)
                 val buildId = try {
                     UUID.fromString(call.parameters["buildId"]!!)
                 } catch (e: IllegalArgumentException) {
@@ -79,6 +82,7 @@ fun Route.buildRoutes(buildService: BuildService) {
             }
 
             delete {
+                call.requireRole(UserRole.ADMIN)
                 val buildId = try {
                     UUID.fromString(call.parameters["buildId"]!!)
                 } catch (e: IllegalArgumentException) {
@@ -94,6 +98,7 @@ fun Route.buildRoutes(buildService: BuildService) {
             }
 
             get("/download-url") {
+                call.requireRole(UserRole.ADMIN, UserRole.UPLOADER, UserRole.TESTER)
                 val buildId = try {
                     UUID.fromString(call.parameters["buildId"]!!)
                 } catch (e: IllegalArgumentException) {

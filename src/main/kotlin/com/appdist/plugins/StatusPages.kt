@@ -8,6 +8,7 @@ import io.ktor.server.response.*
 
 class NotFoundException(message: String) : Exception(message)
 class ForbiddenException(message: String = "Access denied") : Exception(message)
+class UnauthorizedException(message: String = "Unauthorized") : Exception(message)
 class ConflictException(message: String) : Exception(message)
 class BadRequestException(message: String) : Exception(message)
 
@@ -18,6 +19,9 @@ fun Application.configureStatusPages() {
         }
         exception<ForbiddenException> { call, cause ->
             call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", cause.message ?: "Forbidden"))
+        }
+        exception<UnauthorizedException> { call, cause ->
+            call.respond(HttpStatusCode.Unauthorized, ErrorResponse("UNAUTHORIZED", cause.message ?: "Unauthorized"))
         }
         exception<ConflictException> { call, cause ->
             call.respond(HttpStatusCode.Conflict, ErrorResponse("CONFLICT", cause.message ?: "Conflict"))
