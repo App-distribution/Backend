@@ -18,9 +18,6 @@ data class ApkMetadata(
 
 object ApkMetadataExtractor {
     fun extract(file: File): ApkMetadata {
-        val apkFile = ApkFile(file)
-        val info = apkFile.apkMeta
-
         val sha256 = file.inputStream().use { input ->
             val digest = MessageDigest.getInstance("SHA-256")
             val buffer = ByteArray(8192)
@@ -31,29 +28,25 @@ object ApkMetadataExtractor {
             digest.digest().joinToString("") { "%02x".format(it) }
         }
 
-        val certFingerprint = runCatching {
-            apkFile.apkSingers.firstOrNull()
-                ?.certificateMetas?.firstOrNull()
-                ?.certMd5
-        }.getOrNull()
+        return ApkFile(file).use { apkFile ->
+            val info = apkFile.apkMeta
+            val certFingerprint = runCatching {
+                apkFile.apkSingers.firstOrNull()
+                    ?.certificateMetas?.firstOrNull()
+                    ?.certMd5
+            }.getOrNull()
 
-        // Note: ABIs are extracted from native libraries in the APK
-        // The apk-parser library provides access via apkFile.apkMeta but the exact API
-        // varies by version. Using empty list as fallback.
-        val abis = emptyList<String>()
-
-        apkFile.close()
-
-        return ApkMetadata(
-            packageName = info.packageName,
-            versionName = info.versionName ?: "unknown",
-            versionCode = info.versionCode ?: 0L,
-            minSdk = info.minSdkVersion?.toIntOrNull() ?: 1,
-            targetSdk = info.targetSdkVersion?.toIntOrNull() ?: 1,
-            abis = abis,
-            certFingerprint = certFingerprint,
-            fileSizeBytes = file.length(),
-            checksumSha256 = sha256,
-        )
+            ApkMetadata(
+                packageName = info.packageName,
+                versionName = info.versionName ?: "unknown",
+                versionCode = info.versionCode ?: 0L,
+                minSdk = info.minSdkVersion?.toIntOrNull() ?: 1,
+                targetSdk = info.targetSdkVersion?.toIntOrNull() ?: 1,
+                abis = emptyList(),
+                certFingerprint = certFingerprint,
+                fileSizeBytes = file.length(),
+                checksumSha256 = sha256,
+            )
+        }
     }
 }
