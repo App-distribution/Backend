@@ -16,4 +16,19 @@ object TestDatabase {
             )
         }
     }
+
+    fun reset() {
+        transaction {
+            SchemaUtils.drop(
+                InstallEventsTable, DownloadEventsTable, AuditLogsTable,
+                RefreshTokensTable, OtpCodesTable, BuildsTable,
+                ProjectsTable, UsersTable, WorkspacesTable,
+            )
+            SchemaUtils.create(
+                WorkspacesTable, UsersTable, ProjectsTable, BuildsTable,
+                OtpCodesTable, RefreshTokensTable, InstallEventsTable,
+                DownloadEventsTable, AuditLogsTable,
+            )
+        }
+    }
 }

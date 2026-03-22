@@ -9,7 +9,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
-import kotlin.random.Random
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import java.util.Date
@@ -105,6 +104,7 @@ class AuthService(
     }
 
     private suspend fun issueTokens(user: com.appdist.domain.model.User): AuthTokens {
+        requireNotNull(user.workspaceId) { "Cannot issue token for user ${user.id} with no workspace" }
         val algorithm = Algorithm.HMAC256(jwtConfig.secret)
         val accessToken = JWT.create()
             .withIssuer(jwtConfig.issuer)
@@ -112,7 +112,7 @@ class AuthService(
             .withSubject(user.id.toString())
             .withClaim("email", user.email)
             .withClaim("role", user.role.name)
-            .withClaim("workspace_id", user.workspaceId?.toString() ?: "")
+            .withClaim("workspace_id", user.workspaceId.toString())
             .withExpiresAt(Date.from(
                 (Clock.System.now() + jwtConfig.accessTokenTtlMinutes.minutes).toJavaInstant()
             ))
@@ -122,7 +122,9 @@ class AuthService(
         return AuthTokens(accessToken, rawRefreshToken)
     }
 
+    private val secureRandom = java.security.SecureRandom()
+
     private fun generateOtp(length: Int) = (0 until length)
-        .map { Random.nextInt(10) }
+        .map { secureRandom.nextInt(10) }
         .joinToString("")
 }

@@ -38,7 +38,7 @@ class AuditRepositoryImpl : AuditRepository {
         AuditLogsTable.selectAll()
             .apply { if (resourceType != null) where { AuditLogsTable.resourceType eq resourceType } }
             .orderBy(AuditLogsTable.createdAt, SortOrder.DESC)
-            .limit(limit, offset = (page * limit).toLong())
+            .limit(limit).offset(page.toLong() * limit)
             .map {
                 AuditLog(
                     id = it[AuditLogsTable.id],
