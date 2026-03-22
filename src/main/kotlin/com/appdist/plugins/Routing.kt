@@ -44,7 +44,8 @@ fun Application.configureRouting(config: AppConfig) {
     routing {
         route("/api/v1") {
             authRoutes(authService)
-            // build and project routes added in Tasks 10, 11
+            buildRoutes(buildService)
+            uploadRoutes(buildService)
         }
     }
 }
