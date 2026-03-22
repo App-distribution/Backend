@@ -25,6 +25,7 @@ class AuthServiceTest {
     @BeforeTest
     fun setup() {
         TestDatabase.init()
+        TestDatabase.reset()
         authService = AuthService(
             userRepository = UserRepositoryImpl(),
             workspaceRepository = WorkspaceRepositoryImpl(),
