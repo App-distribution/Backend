@@ -19,7 +19,6 @@ object NetworkModule {
 
     private val json = Json {
         ignoreUnknownKeys = true
-        isLenient = true
     }
 
     @Provides
