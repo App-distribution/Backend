@@ -19,7 +19,6 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:datastore"))
     implementation(project(":core:database"))
-    implementation(project(":feature:auth"))
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.retrofit)

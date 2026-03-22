@@ -2,9 +2,9 @@ package com.appdist.feature.settings.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.appdist.core.datastore.TokenManager
 import com.appdist.core.datastore.UserPreferencesStore
 import com.appdist.core.network.ApiService
-import com.appdist.feature.auth.domain.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,7 +31,7 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val prefsStore: UserPreferencesStore,
-    private val authRepository: AuthRepository,
+    private val tokenManager: TokenManager,
     private val api: ApiService
 ) : ViewModel() {
 
@@ -64,7 +64,7 @@ class SettingsViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             try {
-                authRepository.logout()
+                tokenManager.clear()
                 _effect.send(SettingsUiEffect.NavigateToLogin)
             } catch (e: Exception) {
                 _effect.send(SettingsUiEffect.ShowError("Ошибка выхода"))
