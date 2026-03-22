@@ -1,7 +1,6 @@
 package com.appdist.app
 
 import android.app.Application
-import android.content.pm.ApplicationInfo
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
@@ -15,8 +14,7 @@ class AppApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        val isDebuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-        if (isDebuggable) Timber.plant(Timber.DebugTree())
+        if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
     }
 
     override val workManagerConfiguration: Configuration

@@ -1,7 +1,7 @@
 package com.appdist.app.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -21,7 +21,7 @@ sealed class BottomNavDestination(
 ) {
     data object Home : BottomNavDestination("home", "Home", Icons.Default.Home)
     data object Browse : BottomNavDestination("browse", "Browse", Icons.Default.Search)
-    data object Mine : BottomNavDestination("mine", "Mine", Icons.Default.Star)
+    data object Mine : BottomNavDestination("mine", "Mine", Icons.Default.DownloadDone)
     data object Profile : BottomNavDestination("profile", "Profile", Icons.Default.Person)
 }
 
