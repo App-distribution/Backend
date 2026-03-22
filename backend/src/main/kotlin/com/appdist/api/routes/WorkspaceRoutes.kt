@@ -13,11 +13,17 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 @Serializable
-data class WorkspaceDto(val id: String, val name: String, val slug: String)
+data class WorkspaceDto(
+    val id: String,
+    val name: String,
+    val slug: String,
+    val ownerId: String?,
+    val createdAt: String,
+)
 
 fun Route.workspaceRoutes(workspaceRepository: WorkspaceRepository) {
     authenticate(JWT_AUTH) {
-        get("/workspaces") {
+        get("/workspaces/me") {
             val principal = call.principal<AuthPrincipal>()!!
             val workspaceId = try {
                 UUID.fromString(principal.workspaceId)
@@ -27,10 +33,18 @@ fun Route.workspaceRoutes(workspaceRepository: WorkspaceRepository) {
             }
             val workspace = workspaceRepository.findById(workspaceId)
                 ?: return@get call.respond(
-                    HttpStatusCode.Unauthorized,
-                    ErrorResponse("WORKSPACE_NOT_FOUND", "Workspace from token no longer exists")
+                    HttpStatusCode.NotFound,
+                    ErrorResponse("NOT_FOUND", "Workspace not found")
                 )
-            call.respond(WorkspaceDto(workspace.id.toString(), workspace.name, workspace.slug))
+            call.respond(
+                WorkspaceDto(
+                    id = workspace.id.toString(),
+                    name = workspace.name,
+                    slug = workspace.slug,
+                    ownerId = workspace.ownerId?.toString(),
+                    createdAt = workspace.createdAt.toString(),
+                )
+            )
         }
     }
 }

@@ -22,6 +22,7 @@ data class UserDto(
     val name: String,
     val role: String,
     val workspaceId: String?,
+    val createdAt: String,
 )
 
 @Serializable
