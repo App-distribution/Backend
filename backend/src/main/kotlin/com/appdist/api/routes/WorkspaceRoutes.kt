@@ -19,7 +19,12 @@ fun Route.workspaceRoutes(workspaceRepository: WorkspaceRepository) {
     authenticate(JWT_AUTH) {
         get("/workspaces") {
             val principal = call.principal<AuthPrincipal>()!!
-            val workspaceId = UUID.fromString(principal.workspaceId)
+            val workspaceId = try {
+                UUID.fromString(principal.workspaceId)
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_ID", "Invalid workspace UUID in token"))
+                return@get
+            }
             val workspace = workspaceRepository.findById(workspaceId)
                 ?: return@get call.respond(
                     HttpStatusCode.Unauthorized,
