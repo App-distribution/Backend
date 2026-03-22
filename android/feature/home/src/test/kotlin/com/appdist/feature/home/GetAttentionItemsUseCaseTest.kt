@@ -10,6 +10,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -38,6 +39,8 @@ class GetAttentionItemsUseCaseTest {
         useCase().test {
             val items = awaitItem()
             assertTrue(items.any { it is AttentionItem.ExpiringBuild })
+            val expiringItem = items.filterIsInstance<AttentionItem.ExpiringBuild>().first()
+            assertEquals(2, expiringItem.daysLeft)
             cancelAndIgnoreRemainingEvents()
         }
     }

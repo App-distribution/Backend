@@ -25,18 +25,26 @@ fun AttentionSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Требует внимания", style = MaterialTheme.typography.titleMedium)
         items.forEach { item ->
-            when (item) {
-                is AttentionItem.MandatoryUpdate -> MandatoryCard(item, onBuildClick)
-                is AttentionItem.ExpiringBuild -> ExpiringCard(item, onBuildClick)
-                is AttentionItem.NewBuildInSubscribedChannel -> NewBuildCard(item, onBuildClick)
-            }
+            AttentionItemCard(item, onBuildClick)
         }
     }
 }
 
 @Composable
+fun AttentionItemCard(item: AttentionItem, onBuildClick: (String) -> Unit) {
+    when (item) {
+        is AttentionItem.MandatoryUpdate -> MandatoryCard(item, onBuildClick)
+        is AttentionItem.ExpiringBuild -> ExpiringCard(item, onBuildClick)
+        is AttentionItem.NewBuildInSubscribedChannel -> NewBuildCard(item, onBuildClick)
+    }
+}
+
+@Composable
 private fun MandatoryCard(item: AttentionItem.MandatoryUpdate, onBuildClick: (String) -> Unit) {
-    ElevatedCard(Modifier.fillMaxWidth()) {
+    ElevatedCard(
+        onClick = { onBuildClick(item.build.id) },
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(Modifier.padding(16.dp)) {
             Text(
                 "Обязательное обновление",
@@ -61,7 +69,10 @@ private fun MandatoryCard(item: AttentionItem.MandatoryUpdate, onBuildClick: (St
 
 @Composable
 private fun ExpiringCard(item: AttentionItem.ExpiringBuild, onBuildClick: (String) -> Unit) {
-    ElevatedCard(Modifier.fillMaxWidth()) {
+    ElevatedCard(
+        onClick = { onBuildClick(item.build.id) },
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(Modifier.padding(16.dp)) {
             Text(
                 "Истекает через ${item.daysLeft} дн.",
@@ -81,7 +92,10 @@ private fun ExpiringCard(item: AttentionItem.ExpiringBuild, onBuildClick: (Strin
 
 @Composable
 private fun NewBuildCard(item: AttentionItem.NewBuildInSubscribedChannel, onBuildClick: (String) -> Unit) {
-    ElevatedCard(Modifier.fillMaxWidth()) {
+    ElevatedCard(
+        onClick = { onBuildClick(item.build.id) },
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(Modifier.padding(16.dp)) {
             Text(
                 "Новая сборка",

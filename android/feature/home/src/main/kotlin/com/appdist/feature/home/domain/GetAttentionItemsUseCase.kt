@@ -23,7 +23,8 @@ class GetAttentionItemsUseCase @Inject constructor(
                 exp != null && exp > nowMs && exp - nowMs <= threeDaysMs
             }.forEach { build ->
                 val exp = build.expiryDate!!
-                val daysLeft = TimeUnit.MILLISECONDS.toDays(exp - nowMs).toInt()
+                val msPerDay = TimeUnit.DAYS.toMillis(1)
+                val daysLeft = ((exp - nowMs + msPerDay - 1) / msPerDay).toInt()
                 items.add(AttentionItem.ExpiringBuild(build, daysLeft))
             }
 

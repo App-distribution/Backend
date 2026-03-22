@@ -1,6 +1,5 @@
 package com.appdist.feature.home.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +12,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -35,11 +35,11 @@ fun RecentBuildsSection(
 }
 
 @Composable
-private fun BuildListItem(build: BuildUi, onBuildClick: (String) -> Unit) {
+fun BuildListItem(build: BuildUi, onBuildClick: (String) -> Unit) {
+    val dateFormatter = remember { SimpleDateFormat("dd.MM.yy", Locale.getDefault()) }
     ElevatedCard(
-        Modifier
-            .fillMaxWidth()
-            .clickable { onBuildClick(build.id) }
+        onClick = { onBuildClick(build.id) },
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             Modifier
@@ -55,13 +55,10 @@ private fun BuildListItem(build: BuildUi, onBuildClick: (String) -> Unit) {
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                formatDate(build.uploadDate),
+                dateFormatter.format(Date(build.uploadDate)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
-
-private fun formatDate(timestamp: Long): String =
-    SimpleDateFormat("dd.MM.yy", Locale.getDefault()).format(Date(timestamp))

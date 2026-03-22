@@ -11,7 +11,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,10 +23,13 @@ class HomeRepositoryImpl @Inject constructor(
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
+    init {
+        scope.launch { refreshFromNetwork(20) }
+    }
+
     override fun getRecentBuilds(limit: Int): Flow<List<BuildUi>> =
         buildDao.getRecentBuilds(limit)
             .map { entities -> entities.map { it.toUi() } }
-            .onStart { refreshFromNetwork(limit) }
 
     private fun refreshFromNetwork(limit: Int) {
         scope.launch {

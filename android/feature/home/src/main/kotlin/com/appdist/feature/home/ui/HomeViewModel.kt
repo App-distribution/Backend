@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,6 +36,8 @@ class HomeViewModel @Inject constructor(
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
+    private var loadJob: Job? = null
+
     init { load() }
 
     fun onAction(action: HomeAction) = when (action) {
@@ -42,7 +45,8 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun load() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             combine(
                 getAttentionItems(),
                 getRecentBuilds()
