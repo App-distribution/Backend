@@ -46,6 +46,8 @@ fun Application.configureRouting(config: AppConfig) {
             authRoutes(authService)
             buildRoutes(buildService)
             uploadRoutes(buildService)
+            projectRoutes(projectRepo, auditRepo, workspaceRepo)
+            userRoutes(userRepo)
         }
     }
 }

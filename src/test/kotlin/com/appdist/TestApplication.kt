@@ -19,17 +19,24 @@ fun Application.testModule() {
     )
     val otpConfig = AppConfig.OtpConfig(5L, 6)
 
+    val userRepo = UserRepositoryImpl()
+    val workspaceRepo = WorkspaceRepositoryImpl()
+    val auditRepo = AuditRepositoryImpl()
+    val projectRepo = ProjectRepositoryImpl()
+
     val authService = AuthService(
-        UserRepositoryImpl(), WorkspaceRepositoryImpl(),
+        userRepo, workspaceRepo,
         OtpRepositoryImpl(), RefreshTokenRepositoryImpl(),
         jwtConfig, otpConfig,
-        auditRepository = AuditRepositoryImpl()
+        auditRepository = auditRepo
     )
     configureAuth(jwtConfig)
 
     routing {
         route("/api/v1") {
             authRoutes(authService)
+            projectRoutes(projectRepo, auditRepo, workspaceRepo)
+            userRoutes(userRepo)
         }
     }
 }
