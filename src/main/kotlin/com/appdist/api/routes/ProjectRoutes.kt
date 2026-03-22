@@ -13,14 +13,10 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 private val log = KotlinLogging.logger {}
-private val routeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 fun Route.projectRoutes(
     projectRepo: ProjectRepository,
@@ -65,10 +61,12 @@ fun Route.projectRoutes(
                     call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_ID", "Invalid UUID format"))
                     return@post
                 }
+                workspaceRepo.findById(workspaceId)
+                    ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("WORKSPACE_NOT_FOUND", "Workspace not found"))
                 val principal = call.principal<AuthPrincipal>()!!
                 val req = call.receive<CreateProjectRequest>()
                 val project = projectRepo.create(workspaceId, req.name, req.packageName)
-                routeScope.launch {
+                call.application.launch {
                     runCatching {
                         auditRepo.log(
                             userId = UUID.fromString(principal.userId),
@@ -102,9 +100,11 @@ fun Route.projectRoutes(
                     call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_ID", "Invalid UUID format"))
                     return@delete
                 }
+                projectRepo.findById(id)
+                    ?: return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found"))
                 val principal = call.principal<AuthPrincipal>()!!
                 projectRepo.delete(id)
-                routeScope.launch {
+                call.application.launch {
                     runCatching {
                         auditRepo.log(
                             userId = UUID.fromString(principal.userId),
