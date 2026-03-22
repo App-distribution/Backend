@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -20,6 +21,11 @@ object NetworkModule {
     private val json = Json {
         ignoreUnknownKeys = true
     }
+
+    @Provides
+    @Singleton
+    @Named("api_base_url")
+    fun provideBaseUrl(): String = BuildConfig.API_BASE_URL
 
     @Provides
     @Singleton
