@@ -19,7 +19,7 @@ object BuildsTable : Table("builds") {
     val uploadDate = timestamp("upload_date")
     val changelog = text("changelog").nullable()
     val fileSizeBytes = long("file_size_bytes")
-    val checksumSha256 = varchar("checksum_sha256", 64)
+    val checksumSha256 = varchar("checksum_sha256", 64).uniqueIndex()
     val minSdk = integer("min_sdk")
     val targetSdk = integer("target_sdk")
     val certFingerprint = varchar("cert_fingerprint", 64).nullable()
