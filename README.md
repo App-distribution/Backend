@@ -1,120 +1,68 @@
 # AppDistribution Backend
 
-Ktor-based backend for distributing test Android APKs.
+Ktor-based REST backend for distributing test Android APKs to internal testers, with OTP-based authentication, role-based access control, and MinIO-backed binary storage.
 
-## Requirements
+## Prerequisites
 
-- JDK 21+
-- Docker + Docker Compose
+- JDK 17
+- Docker and Docker Compose (for containerised runs)
 
-## Quick Start
+## Run with Docker Compose
 
-### Using Docker Compose (recommended)
+Start all services (Postgres, MinIO, and the backend) from the worktree root:
 
 ```bash
-# Start Postgres and MinIO
-docker-compose up -d
-
-# Build and run the application
-./gradlew run
+docker compose up --build
 ```
 
-### Using Docker
+The API will be available at `http://localhost:8080`.
+
+## Run Locally with Gradle
+
+Start the infrastructure dependencies first:
 
 ```bash
-# Build the image
-docker build -t appdist-backend .
+# From the worktree root
+docker compose up -d postgres minio
+```
 
-# Run the container
-docker run -p 8080:8080 \
-  -e DATABASE_URL=jdbc:postgresql://host.docker.internal:5432/appdist \
-  -e DATABASE_USER=appdist \
-  -e DATABASE_PASSWORD=SET_DATABASE_PASSWORD_IN_ENV \
-  -e MINIO_ENDPOINT=http://host.docker.internal:9000 \
-  -e MINIO_ACCESS_KEY=minioadmin \
-  -e MINIO_SECRET_KEY=SET_PRIVATE_VALUE_IN_ENV \
-  -e JWT_SECRET=your-secret-here \
-  appdist-backend
+Then run the application:
+
+```bash
+./gradlew :backend:run
+```
+
+Or build a fat JAR and run it:
+
+```bash
+./gradlew :backend:shadowJar
+java -jar backend/build/libs/*-all.jar
 ```
 
 ## Environment Variables
 
-| Variable              | Description                        | Example                                          |
-|-----------------------|------------------------------------|--------------------------------------------------|
-| `DATABASE_URL`        | JDBC connection URL for Postgres   | `jdbc:postgresql://localhost:5432/appdist`       |
-| `DATABASE_USER`       | Postgres username                  | `appdist`                                        |
-| `DATABASE_PASSWORD`   | Postgres password                  | `SET_DATABASE_PASSWORD_IN_ENV`                                 |
-| `MINIO_ENDPOINT`      | MinIO server URL                   | `http://localhost:9000`                          |
-| `MINIO_ACCESS_KEY`    | MinIO access key                   | `minioadmin`                                     |
-| `MINIO_SECRET_KEY`    | MinIO secret key                   | `SET_PRIVATE_VALUE_IN_ENV`                                  |
-| `JWT_SECRET`          | Secret used to sign JWT tokens     | `SET_JWT_SECRET_IN_ENV`                        |
+| Variable                     | Description                          | Default                                    |
+|------------------------------|--------------------------------------|--------------------------------------------|
+| `DATABASE_URL`               | JDBC URL for Postgres                | `jdbc:postgresql://localhost:5432/appdist` |
+| `DATABASE_USER`              | Postgres username                    | `appdist`                                  |
+| `DATABASE_PASSWORD`          | Postgres password                    | `SET_DATABASE_PASSWORD_IN_ENV`                           |
+| `STORAGE_ENDPOINT`           | MinIO server URL                     | `http://localhost:9000`                    |
+| `STORAGE_ACCESS_KEY`         | MinIO access key                     | `minioadmin`                               |
+| `STORAGE_SECRET_KEY`         | MinIO secret key                     | `SET_PRIVATE_VALUE_IN_ENV`                            |
+| `STORAGE_BUCKET`             | MinIO bucket for APK binaries        | `appdist-builds`                           |
+| `JWT_SECRET`                 | Secret used to sign JWT tokens       | `SET_JWT_SECRET_IN_ENV`                  |
+| `JWT_ISSUER`                 | JWT issuer claim                     | `appdist`                                  |
+| `JWT_AUDIENCE`               | JWT audience claim                   | `appdist-client`                           |
+| `FIREBASE_CREDENTIALS_PATH`  | Path to Firebase service-account JSON| *(unset — push notifications disabled)*   |
+| `PORT`                       | HTTP port                            | `8080`                                     |
 
-## API Examples
+## API Endpoint Groups
 
-### Auth Flow
-
-Workspace and the first user (ADMIN) are auto-created on the first successful OTP login. There is no separate registration step.
-
-**1. Request OTP**
-
-```bash
-curl -X POST http://localhost:8080/auth/request-otp \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com"}'
-```
-
-Response:
-```json
-{"message": "OTP sent"}
-```
-
-**2. Verify OTP (auto-creates workspace + first user as ADMIN)**
-
-```bash
-curl -X POST http://localhost:8080/auth/verify-otp \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "otp": "123456"}'
-```
-
-Response:
-```json
-{
-  "token": "<jwt>",
-  "workspace_id": "ws_abc123"
-}
-```
-
-### Upload APK
-
-```bash
-curl -X POST http://localhost:8080/apps/{appId}/releases \
-  -H "Authorization: Bearer <jwt>" \
-  -F "file=@app-release.apk" \
-  -F "version_name=1.0.0" \
-  -F "version_code=1" \
-  -F "release_notes=Initial release"
-```
-
-Response:
-```json
-{
-  "id": "rel_xyz789",
-  "version_name": "1.0.0",
-  "version_code": 1,
-  "created_at": "2026-03-22T10:00:00Z"
-}
-```
-
-### Get Download URL
-
-```bash
-curl -X GET http://localhost:8080/apps/{appId}/releases/{releaseId}/download \
-  -H "Authorization: Bearer <jwt>"
-```
-
-Response:
-```json
-{
-  "url": "http://localhost:9000/apks/app-release.apk?X-Amz-Signature=..."
-}
-```
+| Group        | Routes                                                        |
+|--------------|---------------------------------------------------------------|
+| Auth         | `POST /auth/request-otp`, `POST /auth/verify-otp`, `POST /auth/refresh`, `POST /auth/logout` |
+| Workspaces   | `GET /workspaces/me`                                          |
+| Members      | `GET /workspaces/{id}/members`, `PATCH /workspaces/{id}/members/{userId}`, `DELETE /workspaces/{id}/members/{userId}` |
+| Apps         | `GET /apps`, `POST /apps`, `GET /apps/{id}`, `PATCH /apps/{id}`, `DELETE /apps/{id}` |
+| Releases     | `GET /apps/{id}/releases`, `POST /apps/{id}/releases`, `GET /apps/{id}/releases/{rid}`, `DELETE /apps/{id}/releases/{rid}`, `GET /apps/{id}/releases/{rid}/download` |
+| Invitations  | `POST /invitations`, `GET /invitations/{token}`, `POST /invitations/{token}/accept` |
