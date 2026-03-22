@@ -72,4 +72,15 @@ class UploadViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `upload click does nothing when no apk selected`() = runTest {
+        viewModel.state.test {
+            val initial = awaitItem()
+            viewModel.onAction(UploadAction.UploadClicked)
+            // No new state emission — upload is a no-op when URI is null
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }
