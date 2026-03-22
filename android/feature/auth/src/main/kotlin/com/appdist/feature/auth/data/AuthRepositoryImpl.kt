@@ -28,7 +28,8 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun verifyOtp(email: String, otp: String): Result<Unit> = try {
         val response = api.verifyOtp(VerifyOtpRequest(email, otp))
         if (response.isSuccessful) {
-            val body = response.body()!!
+            val body = response.body()
+                ?: return Result.Error(AppError.Network(response.code(), "Empty response body"))
             tokenManager.saveTokens(body.accessToken, body.refreshToken)
             Result.Success(Unit)
         } else Result.Error(AppError.Network(response.code(), response.message()))

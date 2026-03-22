@@ -37,7 +37,7 @@ fun OtpScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 OtpEffect.NavigateToHome -> onSuccess()

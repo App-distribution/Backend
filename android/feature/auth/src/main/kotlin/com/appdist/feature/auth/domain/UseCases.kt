@@ -13,6 +13,7 @@ class RequestOtpUseCase @Inject constructor(private val repository: AuthReposito
 
 class VerifyOtpUseCase @Inject constructor(private val repository: AuthRepository) {
     suspend operator fun invoke(email: String, otp: String): Result<Unit> {
+        if (email.isBlank()) return Result.Error(AppError.Unknown("Email cannot be blank"))
         if (otp.length != 6) return Result.Error(AppError.Unknown("OTP must be 6 digits"))
         return repository.verifyOtp(email, otp)
     }

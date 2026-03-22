@@ -34,7 +34,7 @@ fun LoginScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is LoginEffect.NavigateToOtp -> onNavigateToOtp(effect.email)

@@ -54,6 +54,7 @@ class LoginViewModelTest {
             assertEquals("test@example.com", (effect as LoginEffect.NavigateToOtp).email)
             cancelAndIgnoreRemainingEvents()
         }
+        assertFalse(vm.state.value.isLoading)
     }
 
     @Test

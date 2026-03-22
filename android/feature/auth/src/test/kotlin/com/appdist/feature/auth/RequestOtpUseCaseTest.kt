@@ -8,6 +8,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class RequestOtpUseCaseTest {
@@ -25,8 +26,8 @@ class RequestOtpUseCaseTest {
     @Test
     fun `returns Error when email is blank`() = runTest {
         val result = useCase("  ")
-        assert(result is Result.Error)
-        assert((result as Result.Error).error is AppError.Unknown)
+        assertTrue(result is Result.Error)
+        assertTrue((result as Result.Error).error is AppError.Unknown)
     }
 
     @Test

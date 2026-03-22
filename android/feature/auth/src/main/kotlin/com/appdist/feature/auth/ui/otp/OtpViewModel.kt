@@ -51,10 +51,14 @@ class OtpViewModel @Inject constructor(
     }
 
     private fun verify() {
+        if (email.isBlank()) return
         _state.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             when (val r = verifyOtp(email, _state.value.otp)) {
-                is Result.Success -> _effects.send(OtpEffect.NavigateToHome)
+                is Result.Success -> {
+                    _state.update { it.copy(isLoading = false) }
+                    _effects.send(OtpEffect.NavigateToHome)
+                }
                 is Result.Error -> _state.update { it.copy(isLoading = false, error = r.error) }
             }
         }

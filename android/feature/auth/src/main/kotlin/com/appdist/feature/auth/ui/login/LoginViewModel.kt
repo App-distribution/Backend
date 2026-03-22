@@ -53,7 +53,10 @@ class LoginViewModel @Inject constructor(
         _state.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             when (val result = requestOtp(email)) {
-                is Result.Success -> _effects.send(LoginEffect.NavigateToOtp(email))
+                is Result.Success -> {
+                    _state.update { it.copy(isLoading = false) }
+                    _effects.send(LoginEffect.NavigateToOtp(email))
+                }
                 is Result.Error -> _state.update { it.copy(isLoading = false, error = result.error) }
             }
         }
