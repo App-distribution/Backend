@@ -81,25 +81,25 @@ fun BuildDetailScreen(
             }
         }
     ) { padding ->
+        val build = state.build
+        val error = state.error
         when {
             state.isLoading -> LoadingScreen(modifier = Modifier.padding(padding))
-            state.error != null -> ErrorScreen(
-                error = state.error!!,
+            error != null -> ErrorScreen(
+                error = error,
                 onRetry = { viewModel.onAction(BuildDetailAction.RetryClicked) },
                 modifier = Modifier.padding(padding)
             )
-            state.build != null -> {
-                val build = state.build!!
-                Column(
-                    Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
-                ) {
-                    BuildHeroSection(build, Modifier.padding(16.dp))
-                    build.changelog?.takeIf { it.isNotBlank() }?.let { changelog ->
-                        ChangelogSection(changelog, Modifier.padding(horizontal = 16.dp))
-                    }
-                    TechDetailsSection(build, Modifier.padding(16.dp))
-                    Spacer(Modifier.height(80.dp))
+            build != null -> Column(
+                Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
+            ) {
+                BuildHeroSection(build, Modifier.padding(16.dp))
+                val changelog = build.changelog
+                if (!changelog.isNullOrBlank()) {
+                    ChangelogSection(changelog, Modifier.padding(horizontal = 16.dp))
                 }
+                TechDetailsSection(build, Modifier.padding(16.dp))
+                Spacer(Modifier.height(80.dp))
             }
         }
     }

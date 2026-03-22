@@ -1,6 +1,7 @@
 package com.appdist.feature.builddetail
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.work.WorkManager
 import app.cash.turbine.test
 import com.appdist.core.common.AppError
 import com.appdist.core.common.Result
@@ -28,6 +29,7 @@ class BuildDetailViewModelTest {
     private lateinit var getInstallStatus: GetInstallStatusUseCase
     private lateinit var downloadBuild: DownloadBuildUseCase
     private lateinit var reportInstall: ReportInstallUseCase
+    private lateinit var workManager: WorkManager
     private lateinit var context: android.content.Context
     private lateinit var viewModel: BuildDetailViewModel
 
@@ -48,6 +50,7 @@ class BuildDetailViewModelTest {
         getInstallStatus = mockk()
         downloadBuild = mockk()
         reportInstall = mockk(relaxed = true)
+        workManager = mockk(relaxed = true)
         context = mockk(relaxed = true)
         every { context.packageName } returns "com.appdist.app"
 
@@ -55,7 +58,7 @@ class BuildDetailViewModelTest {
         every { getInstallStatus(any(), any(), any(), any()) } returns InstallStatus.NotInstalled
 
         val savedState = SavedStateHandle(mapOf("buildId" to "b1"))
-        viewModel = BuildDetailViewModel(savedState, context, getBuildDetail, getInstallStatus, downloadBuild, reportInstall)
+        viewModel = BuildDetailViewModel(savedState, context, getBuildDetail, getInstallStatus, downloadBuild, reportInstall, workManager)
     }
 
     @AfterEach
@@ -87,7 +90,7 @@ class BuildDetailViewModelTest {
     fun `error state set when build load fails`() = runTest {
         every { getBuildDetail(any<String>()) } returns flow { throw RuntimeException("Network error") }
         val savedState = SavedStateHandle(mapOf("buildId" to "b1"))
-        val vm = BuildDetailViewModel(savedState, context, getBuildDetail, getInstallStatus, downloadBuild, reportInstall)
+        val vm = BuildDetailViewModel(savedState, context, getBuildDetail, getInstallStatus, downloadBuild, reportInstall, workManager)
         vm.state.test {
             val state = awaitItem()
             assertFalse(state.isLoading)

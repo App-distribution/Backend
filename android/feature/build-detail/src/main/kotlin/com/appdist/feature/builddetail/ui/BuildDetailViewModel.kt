@@ -6,6 +6,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkManager
 import com.appdist.core.common.AppError
 import com.appdist.core.common.Result
 import com.appdist.core.common.model.BuildUi
@@ -48,7 +49,8 @@ class BuildDetailViewModel @Inject constructor(
     private val getBuildDetail: GetBuildDetailUseCase,
     private val getInstallStatus: GetInstallStatusUseCase,
     private val downloadBuild: DownloadBuildUseCase,
-    private val reportInstall: ReportInstallUseCase
+    private val reportInstall: ReportInstallUseCase,
+    private val workManager: WorkManager
 ) : ViewModel() {
 
     val buildId: String = checkNotNull(savedStateHandle["buildId"])
@@ -141,7 +143,8 @@ class BuildDetailViewModel @Inject constructor(
     }
 
     private fun cancelDownload() {
-        // WorkManager cancel
+        workManager.cancelUniqueWork("download_$buildId")
+        _state.update { it.copy(downloadState = DownloadState.Idle) }
     }
 
     private fun copyLink() {

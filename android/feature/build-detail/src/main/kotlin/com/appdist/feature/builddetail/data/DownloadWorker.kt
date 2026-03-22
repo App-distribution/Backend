@@ -44,7 +44,10 @@ class DownloadWorker @AssistedInject constructor(
 
             val request = Request.Builder().url(downloadUrl).build()
             okHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext Result.retry()
+                if (!response.isSuccessful) {
+                    return@withContext if (response.code in 400..499) Result.failure()
+                    else Result.retry()
+                }
                 val body = response.body ?: return@withContext Result.retry()
 
                 outputFile.outputStream().use { output ->

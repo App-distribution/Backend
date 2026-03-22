@@ -2,6 +2,7 @@ package com.appdist.feature.builddetail.domain
 
 import androidx.work.*
 import com.appdist.core.common.AppError
+import com.appdist.core.common.Result
 import com.appdist.core.common.model.BuildUi
 import com.appdist.feature.builddetail.data.DownloadWorker
 import kotlinx.coroutines.flow.Flow
@@ -50,7 +51,7 @@ class DownloadBuildUseCase @Inject constructor(
                         val file = java.io.File(path)
                         val verified = verifyChecksum(file, build.checksumSha256)
                         if (verified.isSuccess) DownloadState.ReadyToInstall(path)
-                        else DownloadState.Failed(AppError.ChecksumMismatch(build.checksumSha256, "mismatch"))
+                        else DownloadState.Failed((verified as Result.Error<*>).error)
                     } else DownloadState.Failed(AppError.Unknown("No output path"))
                 }
                 WorkInfo.State.FAILED -> DownloadState.Failed(AppError.Unknown("Download failed"))
