@@ -3,6 +3,8 @@ package com.appdist.service
 import com.appdist.TestDatabase
 import com.appdist.domain.service.NotificationService
 import io.mockk.mockk
+import io.mockk.coVerify
+import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -16,8 +18,7 @@ class BuildServiceTest {
     }
 
     @Test
-    fun `BuildService can be instantiated`() {
-        // Full upload flow tested in integration tests (Task 15)
-        // This placeholder verifies compilation and basic wiring
+    fun `notifyNewBuild is not called before any upload`() = runTest {
+        coVerify(exactly = 0) { mockNotificationService.notifyNewBuild(any(), any(), any()) }
     }
 }
