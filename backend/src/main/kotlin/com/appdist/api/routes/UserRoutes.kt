@@ -24,7 +24,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                     user.email,
                     user.name,
                     user.role.name,
-                    user.workspaceId?.toString() ?: ""
+                    user.workspaceId?.toString()
                 )
             )
         }
@@ -32,6 +32,12 @@ fun Route.userRoutes(userRepository: UserRepository) {
         patch("/users/me") {
             val principal = call.principal<AuthPrincipal>()!!
             val req = call.receive<UpdateProfileRequest>()
+
+            if (req.name == null && req.fcmToken == null) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("NO_FIELDS_TO_UPDATE", "At least one field must be provided"))
+                return@patch
+            }
+
             val userId = UUID.fromString(principal.userId)
             if (req.fcmToken != null) userRepository.updateFcmToken(userId, req.fcmToken)
             if (req.name != null) userRepository.update(userId, req.name)
@@ -42,7 +48,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                     user.email,
                     user.name,
                     user.role.name,
-                    user.workspaceId?.toString() ?: ""
+                    user.workspaceId?.toString()
                 )
             )
         }
