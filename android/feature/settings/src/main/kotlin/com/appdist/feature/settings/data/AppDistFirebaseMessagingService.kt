@@ -15,6 +15,10 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class AppDistFirebaseMessagingService : FirebaseMessagingService() {
 
+    companion object {
+        private const val NOTIFICATION_ID = 1001
+    }
+
     @Inject lateinit var workManager: WorkManager
 
     override fun onNewToken(token: String) {
@@ -44,11 +48,10 @@ class AppDistFirebaseMessagingService : FirebaseMessagingService() {
             )
         }
 
-        val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-            buildId?.let { putExtra("build_id", it) }
-        }
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return
+        buildId?.let { launchIntent.putExtra("build_id", it) }
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            this, 0, launchIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         val notif = NotificationCompat.Builder(this, channelId)
@@ -59,6 +62,6 @@ class AppDistFirebaseMessagingService : FirebaseMessagingService() {
             .setAutoCancel(true)
             .build()
 
-        nm.notify(System.currentTimeMillis().toInt(), notif)
+        nm.notify(NOTIFICATION_ID, notif)
     }
 }

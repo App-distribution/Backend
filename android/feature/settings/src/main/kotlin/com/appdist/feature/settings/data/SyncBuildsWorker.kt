@@ -54,8 +54,11 @@ class SyncBuildsWorker @AssistedInject constructor(
                 buildDao.upsertBuilds(builds)
                 // Stale cache cleanup: remove entries older than 7 days
                 buildDao.deleteStale(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000)
+                Result.success()
+            } else {
+                // 4xx: bad request, don't retry; 5xx: server error, retry
+                if (response.code() in 400..499) Result.failure() else Result.retry()
             }
-            Result.success()
         } catch (e: Exception) {
             Result.retry()
         }
