@@ -32,7 +32,7 @@ fun ProjectsScreen(
         }
     ) { padding ->
         if (state.isLoading) {
-            LoadingScreen()
+            LoadingScreen(modifier = Modifier.padding(padding))
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),

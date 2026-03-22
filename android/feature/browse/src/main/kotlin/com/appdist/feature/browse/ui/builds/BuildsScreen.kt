@@ -12,7 +12,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.appdist.core.common.AppError
 import com.appdist.core.ui.components.EmptyScreen
+import com.appdist.core.ui.components.ErrorScreen
 import com.appdist.core.ui.components.LoadingScreen
 import com.appdist.feature.browse.ui.builds.components.BuildCard
 import com.appdist.feature.browse.ui.builds.components.FilterChipsRow
@@ -57,6 +59,13 @@ fun BuildsScreen(
 
             when {
                 builds.loadState.refresh is LoadState.Loading -> LoadingScreen()
+                builds.loadState.refresh is LoadState.Error -> {
+                    val e = (builds.loadState.refresh as LoadState.Error).error
+                    ErrorScreen(
+                        error = AppError.Unknown(e.message ?: "Unknown error"),
+                        onRetry = { builds.refresh() }
+                    )
+                }
                 builds.itemCount == 0 -> EmptyScreen("Сборок не найдено")
                 else -> LazyColumn(
                     contentPadding = PaddingValues(16.dp),
