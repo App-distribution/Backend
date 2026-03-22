@@ -1,11 +1,13 @@
 package com.appdist.api.routes
 
 import com.appdist.api.dto.*
+import com.appdist.domain.model.UserRole
 import com.appdist.domain.repository.AuditRepository
 import com.appdist.domain.repository.ProjectRepository
 import com.appdist.domain.repository.WorkspaceRepository
 import com.appdist.plugins.AuthPrincipal
 import com.appdist.plugins.JWT_AUTH
+import com.appdist.plugins.requireRole
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -55,6 +57,7 @@ fun Route.projectRoutes(
                 call.respond(projects.map { it.toDto() })
             }
             post {
+                call.requireRole(UserRole.ADMIN)
                 val workspaceId = try {
                     UUID.fromString(call.parameters["workspaceId"]!!)
                 } catch (e: IllegalArgumentException) {
@@ -94,6 +97,7 @@ fun Route.projectRoutes(
                 call.respond(project.toDto())
             }
             delete {
+                call.requireRole(UserRole.ADMIN)
                 val id = try {
                     UUID.fromString(call.parameters["projectId"]!!)
                 } catch (e: IllegalArgumentException) {
