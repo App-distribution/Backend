@@ -14,6 +14,7 @@ fun Application.module() {
     DatabaseFactory.init(config.database)
 
     configureSerialization()
+    configureCallLogging()
     configureCORS()
     configureStatusPages()
     configureAuth(config.jwt)
