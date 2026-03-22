@@ -1,6 +1,7 @@
 package com.appdist.core.common
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -43,5 +44,16 @@ class ResultTest {
         assertEquals(Result.Error<Int>(error), result)
     }
 
-    private fun <T> assertNull(value: T?) = assertTrue(value == null)
+    @Test
+    fun `resultOf returns Success on clean block`() {
+        val result = resultOf { 99 }
+        assertEquals(Result.Success(99), result)
+    }
+
+    @Test
+    fun `resultOf returns Error on exception`() {
+        val result = resultOf<Int> { throw RuntimeException("boom") }
+        assertTrue(result is Result.Error)
+        assertEquals("boom", (result as Result.Error).error.let { (it as AppError.Unknown).message })
+    }
 }

@@ -1,6 +1,7 @@
 package com.appdist.core.common
 
-import java.io.IOException
+import java.net.SocketException
+import java.net.UnknownHostException
 
 sealed interface AppError {
     data class Network(val code: Int?, val message: String) : AppError
@@ -14,6 +15,6 @@ sealed interface AppError {
 }
 
 fun Exception.toAppError(): AppError = when (this) {
-    is IOException -> AppError.NoInternet
+    is UnknownHostException, is SocketException -> AppError.NoInternet
     else -> AppError.Unknown(message ?: "Unknown error")
 }

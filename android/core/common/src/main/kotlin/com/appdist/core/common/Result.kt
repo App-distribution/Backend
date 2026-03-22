@@ -15,7 +15,7 @@ sealed class Result<out T> {
     val isError get() = this is Error
 }
 
-inline fun <T> runCatching(block: () -> T): Result<T> = try {
+inline fun <T> resultOf(block: () -> T): Result<T> = try {
     Result.Success(block())
 } catch (e: Exception) {
     Result.Error(e.toAppError())
