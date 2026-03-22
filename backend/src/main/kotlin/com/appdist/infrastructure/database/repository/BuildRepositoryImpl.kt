@@ -76,12 +76,27 @@ class BuildRepositoryImpl : BuildRepository {
             .map { it.toBuild() }
     }
 
-    override suspend fun update(buildId: UUID, changelog: String?, status: BuildStatus): Build = dbQuery {
-        BuildsTable.update({ BuildsTable.id eq buildId }) {
+    override suspend fun update(buildId: UUID, changelog: String?, status: BuildStatus?): Build? = dbQuery {
+        val rowsUpdated = BuildsTable.update({ BuildsTable.id eq buildId }) {
             if (changelog != null) it[BuildsTable.changelog] = changelog
-            it[BuildsTable.status] = status.name
+            if (status != null) it[BuildsTable.status] = status.name
         }
-        BuildsTable.selectAll().where { BuildsTable.id eq buildId }.single().toBuild()
+        if (rowsUpdated == 0) return@dbQuery null
+        BuildsTable.selectAll().where { BuildsTable.id eq buildId }.singleOrNull()?.toBuild()
+    }
+
+    override suspend fun countByProject(projectId: UUID, channel: ReleaseChannel?, search: String?): Int = dbQuery {
+        BuildsTable.selectAll()
+            .where {
+                var condition = BuildsTable.projectId eq projectId
+                if (channel != null) condition = condition and (BuildsTable.channel eq channel.name)
+                if (search != null) condition = condition and (
+                    (BuildsTable.versionName like "%$search%") or
+                    (BuildsTable.branch like "%$search%")
+                )
+                condition
+            }
+            .count().toInt()
     }
 
     override suspend fun delete(buildId: UUID) = dbQuery {

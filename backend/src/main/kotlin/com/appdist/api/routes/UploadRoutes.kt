@@ -25,75 +25,113 @@ fun Route.uploadRoutes(buildService: BuildService) {
             val multipart = call.receiveMultipart()
 
             var apkFile: File? = null
-            var projectId: UUID? = null
-            var environment = BuildEnvironment.QA
-            var channel = ReleaseChannel.INTERNAL
+            var originalFileName: String = "app.apk"
+            var projectIdRaw: String? = null
+            var environmentRaw = "QA"
+            var channelRaw = "INTERNAL"
             var buildType = "debug"
             var flavor: String? = null
             var branch: String? = null
             var commitHash: String? = null
             var changelog: String? = null
 
-            multipart.forEachPart { part ->
-                when (part) {
-                    is PartData.FormItem -> {
-                        when (part.name) {
-                            "projectId" -> projectId = UUID.fromString(part.value)
-                            "environment" -> environment = BuildEnvironment.valueOf(part.value.uppercase())
-                            "channel" -> channel = ReleaseChannel.valueOf(part.value.uppercase())
-                            "buildType" -> buildType = part.value
-                            "flavor" -> flavor = part.value
-                            "branch" -> branch = part.value
-                            "commitHash" -> commitHash = part.value
-                            "changelog" -> changelog = part.value
-                        }
-                    }
-                    is PartData.FileItem -> {
-                        if (part.name == "apk") {
-                            val tempFile = File.createTempFile("upload_", ".apk")
-                            part.streamProvider().use { input ->
-                                tempFile.outputStream().use { output -> input.copyTo(output) }
+            try {
+                multipart.forEachPart { part ->
+                    when (part) {
+                        is PartData.FormItem -> {
+                            when (part.name) {
+                                "projectId" -> projectIdRaw = part.value
+                                "environment" -> environmentRaw = part.value.uppercase()
+                                "channel" -> channelRaw = part.value.uppercase()
+                                "buildType" -> buildType = part.value
+                                "flavor" -> flavor = part.value
+                                "branch" -> branch = part.value
+                                "commitHash" -> commitHash = part.value
+                                "changelog" -> changelog = part.value
                             }
-                            apkFile = tempFile
                         }
+                        is PartData.FileItem -> {
+                            if (part.name == "apk") {
+                                val tempFile = File.createTempFile("upload_", ".apk")
+                                part.streamProvider().use { input ->
+                                    tempFile.outputStream().use { output -> input.copyTo(output) }
+                                }
+                                apkFile = tempFile
+                                originalFileName = part.originalFileName ?: "app.apk"
+                            }
+                        }
+                        else -> {}
                     }
-                    else -> {}
+                    part.dispose()
                 }
-                part.dispose()
-            }
 
-            val file = apkFile
-            val pid = projectId
+                val file = apkFile
+                val pid = projectIdRaw?.let {
+                    try {
+                        UUID.fromString(it)
+                    } catch (e: IllegalArgumentException) {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            ErrorResponse("INVALID_ID", "Invalid UUID format for projectId")
+                        )
+                        return@post
+                    }
+                }
 
-            if (file == null || pid == null) {
-                call.respond(HttpStatusCode.BadRequest,
-                    ErrorResponse("MISSING_FIELDS", "apk file and projectId are required"))
-                return@post
-            }
-
-            val build = runCatching {
-                buildService.uploadBuild(
-                    UploadRequest(
-                        projectId = pid,
-                        uploaderId = UUID.fromString(principal.userId),
-                        environment = environment,
-                        channel = channel,
-                        buildType = buildType,
-                        flavor = flavor,
-                        branch = branch,
-                        commitHash = commitHash,
-                        changelog = changelog,
-                        file = file,
-                        originalFileName = "app.apk"
+                if (file == null || pid == null) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse("MISSING_FIELDS", "apk file and projectId are required")
                     )
-                )
-            }.also { file.delete() }.getOrElse {
-                call.respond(HttpStatusCode.InternalServerError,
-                    ErrorResponse("UPLOAD_FAILED", it.message ?: "Upload failed"))
-                return@post
-            }
+                    return@post
+                }
 
-            call.respond(HttpStatusCode.Created, build.toDto())
+                val environment = runCatching { BuildEnvironment.valueOf(environmentRaw) }.getOrElse {
+                    apkFile?.delete()
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse("INVALID_FIELD", "Invalid environment: $environmentRaw")
+                    )
+                    return@post
+                }
+
+                val channel = runCatching { ReleaseChannel.valueOf(channelRaw) }.getOrElse {
+                    apkFile?.delete()
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse("INVALID_FIELD", "Invalid channel: $channelRaw")
+                    )
+                    return@post
+                }
+
+                val build = runCatching {
+                    buildService.uploadBuild(
+                        UploadRequest(
+                            projectId = pid,
+                            uploaderId = UUID.fromString(principal.userId),
+                            environment = environment,
+                            channel = channel,
+                            buildType = buildType,
+                            flavor = flavor,
+                            branch = branch,
+                            commitHash = commitHash,
+                            changelog = changelog,
+                            file = file,
+                            originalFileName = originalFileName
+                        )
+                    )
+                }.getOrElse {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        ErrorResponse("UPLOAD_FAILED", it.message ?: "Upload failed")
+                    )
+                    return@post
+                }
+
+                call.respond(HttpStatusCode.Created, build.toDto())
+            } finally {
+                apkFile?.delete()
+            }
         }
     }
 }
