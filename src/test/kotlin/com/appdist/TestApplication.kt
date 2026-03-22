@@ -1,5 +1,6 @@
 package com.appdist
 
+import com.appdist.api.routes.*
 import com.appdist.config.AppConfig
 import com.appdist.domain.service.AuthService
 import com.appdist.infrastructure.database.repository.*
@@ -28,7 +29,7 @@ fun Application.testModule() {
 
     routing {
         route("/api/v1") {
-            // authRoutes added in Task 6
+            authRoutes(authService)
         }
     }
 }
