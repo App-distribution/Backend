@@ -3,10 +3,14 @@ package com.appdist.core.datastore
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
-import io.mockk.*
+import androidx.datastore.preferences.core.stringPreferencesKey
+import app.cash.turbine.test
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -23,17 +27,40 @@ class TokenManagerTest {
 
     @Test
     fun `getAccessToken returns null when no token stored`() = runTest {
-        val prefs = mutablePreferencesOf()
-        every { dataStore.data } returns flowOf(prefs)
+        every { dataStore.data } returns flowOf(mutablePreferencesOf())
         assertNull(tokenManager.getAccessToken())
     }
 
     @Test
-    fun `isAuthenticated emits false when no token`() = runTest {
-        val prefs = mutablePreferencesOf()
+    fun `getAccessToken returns stored token`() = runTest {
+        val prefs = mutablePreferencesOf(stringPreferencesKey("access_token") to "tok123")
         every { dataStore.data } returns flowOf(prefs)
-        val result = mutableListOf<Boolean>()
-        tokenManager.isAuthenticated.collect { result.add(it); return@collect }
-        assertEquals(false, result.first())
+        assertEquals("tok123", tokenManager.getAccessToken())
+    }
+
+    @Test
+    fun `getRefreshToken returns stored refresh token`() = runTest {
+        val prefs = mutablePreferencesOf(stringPreferencesKey("refresh_token") to "ref456")
+        every { dataStore.data } returns flowOf(prefs)
+        assertEquals("ref456", tokenManager.getRefreshToken())
+    }
+
+    @Test
+    fun `isAuthenticated emits false when no token`() = runTest {
+        every { dataStore.data } returns flowOf(mutablePreferencesOf())
+        tokenManager.isAuthenticated.test {
+            assertEquals(false, awaitItem())
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `isAuthenticated emits true when access token present`() = runTest {
+        val prefs = mutablePreferencesOf(stringPreferencesKey("access_token") to "tok123")
+        every { dataStore.data } returns flowOf(prefs)
+        tokenManager.isAuthenticated.test {
+            assertEquals(true, awaitItem())
+            awaitComplete()
+        }
     }
 }
