@@ -7,6 +7,7 @@ data class AppConfig(
     val storage: StorageConfig,
     val jwt: JwtConfig,
     val otp: OtpConfig,
+    val firebase: FirebaseConfig,
 ) {
     data class DatabaseConfig(
         val url: String,
@@ -30,6 +31,9 @@ data class AppConfig(
     data class OtpConfig(
         val ttlMinutes: Long,
         val length: Int,
+    )
+    data class FirebaseConfig(
+        val credentialsPath: String?,
     )
 
     companion object {
@@ -56,6 +60,9 @@ data class AppConfig(
             otp = OtpConfig(
                 ttlMinutes = config.property("otp.ttlMinutes").getString().toLong(),
                 length = config.property("otp.length").getString().toInt(),
+            ),
+            firebase = FirebaseConfig(
+                credentialsPath = config.propertyOrNull("firebase.credentialsPath")?.getString(),
             ),
         )
     }
