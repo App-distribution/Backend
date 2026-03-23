@@ -14,10 +14,25 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.datetime.Clock
 import java.util.UUID
 
 fun Route.buildRoutes(buildService: BuildService) {
     authenticate(JWT_AUTH) {
+        // Recent builds across all workspace projects
+        get("/builds/recent") {
+            val principal = call.principal<AuthPrincipal>()!!
+            val workspaceId = try {
+                UUID.fromString(principal.workspaceId)
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_ID", "Invalid workspace UUID in token"))
+                return@get
+            }
+            val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
+            val builds = buildService.listRecentByWorkspace(workspaceId, limit)
+            call.respond(builds.map { it.toDto() })
+        }
+
         route("/projects/{projectId}/builds") {
             get {
                 val projectId = try {
@@ -33,11 +48,7 @@ fun Route.buildRoutes(buildService: BuildService) {
                 val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
 
                 val builds = buildService.listBuilds(projectId, channel, search, page, limit)
-                val total = buildService.countBuilds(projectId, channel, search)
-                call.respond(BuildListResponse(
-                    builds = builds.map { it.toDto() },
-                    total = total, page = page, limit = limit
-                ))
+                call.respond(builds.map { it.toDto() })
             }
         }
 
@@ -112,7 +123,8 @@ fun Route.buildRoutes(buildService: BuildService) {
                     call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", it.message ?: "Build not found"))
                     return@get
                 }
-                call.respond(DownloadUrlResponse(url))
+                val expiresAt = Clock.System.now().toEpochMilliseconds() + 15 * 60 * 1000L
+                call.respond(DownloadUrlResponse(url, expiresAt))
             }
         }
     }

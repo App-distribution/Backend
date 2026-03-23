@@ -130,5 +130,5 @@ private fun com.appdist.domain.model.Project.toDto() = ProjectDto(
     name = name,
     packageName = packageName,
     iconUrl = iconUrl,
-    createdAt = createdAt.toString(),
+    createdAt = createdAt.toEpochMilliseconds(),
 )

@@ -15,26 +15,18 @@ data class BuildDto(
     val channel: String,
     val branch: String?,
     val commitHash: String?,
-    val uploaderEmail: String?,
-    val uploadDate: String,
+    val uploaderName: String,
+    val uploadDate: Long,          // epoch millis
     val changelog: String?,
-    val fileSizeBytes: Long,
+    val fileSize: Long,
     val checksumSha256: String,
     val minSdk: Int,
     val targetSdk: Int,
     val certFingerprint: String?,
     val abis: List<String>,
     val status: String,
-    val expiryDate: String?,
+    val expiryDate: Long?,         // epoch millis
     val isLatestInChannel: Boolean,
-)
-
-@Serializable
-data class BuildListResponse(
-    val builds: List<BuildDto>,
-    val total: Int,
-    val page: Int,
-    val limit: Int,
 )
 
 @Serializable
@@ -44,7 +36,7 @@ data class UpdateBuildRequest(
 )
 
 @Serializable
-data class DownloadUrlResponse(val url: String, val expiresInMinutes: Int = 15)
+data class DownloadUrlResponse(val url: String, val expiresAt: Long)
 
 fun com.appdist.domain.model.Build.toDto() = BuildDto(
     id = id.toString(),
@@ -58,16 +50,16 @@ fun com.appdist.domain.model.Build.toDto() = BuildDto(
     channel = channel.name,
     branch = branch,
     commitHash = commitHash,
-    uploaderEmail = null, // TODO: populate from uploader join
-    uploadDate = uploadDate.toString(),
+    uploaderName = "",
+    uploadDate = uploadDate.toEpochMilliseconds(),
     changelog = changelog,
-    fileSizeBytes = fileSizeBytes,
+    fileSize = fileSizeBytes,
     checksumSha256 = checksumSha256,
     minSdk = minSdk,
     targetSdk = targetSdk,
     certFingerprint = certFingerprint,
     abis = abis,
     status = status.name,
-    expiryDate = expiryDate?.toString(),
+    expiryDate = expiryDate?.toEpochMilliseconds(),
     isLatestInChannel = isLatestInChannel,
 )

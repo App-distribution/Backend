@@ -12,7 +12,7 @@ data class ProjectDto(
     val name: String,
     val packageName: String,
     val iconUrl: String?,
-    val createdAt: String,
+    val createdAt: Long,           // epoch millis
 )
 
 @Serializable
@@ -22,7 +22,7 @@ data class UserDto(
     val name: String,
     val role: String,
     val workspaceId: String?,
-    val createdAt: String,
+    val createdAt: Long,           // epoch millis
 )
 
 @Serializable

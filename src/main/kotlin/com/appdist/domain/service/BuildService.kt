@@ -125,6 +125,9 @@ class BuildService(
         return url
     }
 
+    suspend fun listRecentByWorkspace(workspaceId: UUID, limit: Int): List<Build> =
+        buildRepository.listRecent(workspaceId, limit)
+
     suspend fun listBuilds(
         projectId: UUID, channel: ReleaseChannel?, search: String?, page: Int, limit: Int
     ): List<Build> = buildRepository.listByProject(projectId, channel, search, page, limit)

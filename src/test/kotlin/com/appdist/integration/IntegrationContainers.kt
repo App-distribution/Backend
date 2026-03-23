@@ -26,7 +26,7 @@ object IntegrationContainers {
     val minio: GenericContainer<Nothing> by lazy {
         GenericContainer<Nothing>("minio/minio:latest").apply {
             withEnv("MINIO_ROOT_USER", "minioadmin")
-            withEnv("MINIO_ROOT_PASSWORD", "SET_PRIVATE_VALUE_IN_ENV")
+            withEnv("MINIO_ROOT_PASSWORD", "test-minio-password")
             withCommand("server", "/data")
             withExposedPorts(9000)
             waitingFor(HttpWaitStrategy().forPath("/minio/health/live").withStartupTimeout(Duration.ofSeconds(30)))
@@ -46,7 +46,7 @@ object IntegrationContainers {
     val storageConfig: AppConfig.StorageConfig get() = AppConfig.StorageConfig(
         endpoint = minioEndpoint,
         accessKey = "minioadmin",
-        secretKey = "SET_PRIVATE_VALUE_IN_ENV",
+        secretKey = "test-minio-password",
         bucket = "appdist-test",
     )
 

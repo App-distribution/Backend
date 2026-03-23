@@ -39,6 +39,7 @@ open class AuthService(
         val code = generateOtp(otpConfig.length)
         otpRepository.create(email, code, otpConfig.ttlMinutes)
         log.info { "OTP for $email: $code" }
+        println("\n┌─────────────────────────────┐\n│  OTP for $email\n│  Code: $code\n└─────────────────────────────┘")
         return code
     }
 

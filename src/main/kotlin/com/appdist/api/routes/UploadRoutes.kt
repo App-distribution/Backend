@@ -25,7 +25,7 @@ fun Route.uploadRoutes(buildService: BuildService) {
         post("/builds/upload") {
             call.requireRole(UserRole.ADMIN, UserRole.UPLOADER)
             val principal = call.principal<AuthPrincipal>()!!
-            val multipart = call.receiveMultipart()
+            val multipart = call.receiveMultipart(formFieldLimit = 500L * 1024 * 1024)
 
             var apkFile: File? = null
             var originalFileName: String = "app.apk"
@@ -39,7 +39,7 @@ fun Route.uploadRoutes(buildService: BuildService) {
             var changelog: String? = null
 
             try {
-                multipart.forEachPart { part ->
+                runCatching { multipart.forEachPart { part ->
                     when (part) {
                         is PartData.FormItem -> {
                             when (part.name) {
@@ -66,6 +66,9 @@ fun Route.uploadRoutes(buildService: BuildService) {
                         else -> {}
                     }
                     part.dispose()
+                } }.getOrElse {
+                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("UPLOAD_FAILED", it.message ?: "Failed to read multipart"))
+                    return@post
                 }
 
                 val file = apkFile

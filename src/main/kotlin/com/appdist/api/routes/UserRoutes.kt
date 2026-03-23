@@ -27,7 +27,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                     name = user.name,
                     role = user.role.name,
                     workspaceId = user.workspaceId?.toString(),
-                    createdAt = user.createdAt.toString(),
+                    createdAt = user.createdAt.toEpochMilliseconds(),
                 )
             )
         }
@@ -52,7 +52,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                     name = user.name,
                     role = user.role.name,
                     workspaceId = user.workspaceId?.toString(),
-                    createdAt = user.createdAt.toString(),
+                    createdAt = user.createdAt.toEpochMilliseconds(),
                 )
             )
         }
@@ -73,7 +73,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                     name = user.name,
                     role = user.role.name,
                     workspaceId = user.workspaceId?.toString(),
-                    createdAt = user.createdAt.toString(),
+                    createdAt = user.createdAt.toEpochMilliseconds(),
                 )
             })
         }
