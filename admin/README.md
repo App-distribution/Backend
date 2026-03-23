@@ -36,7 +36,15 @@ npm install
 npm run dev
 ```
 
-The app will run on `http://localhost:3000` by default and expects the backend API at `NEXT_PUBLIC_API_BASE_URL`.
+The default `dev` script uses `webpack` plus polling watchers because `next dev` with Turbopack can hit `EMFILE` watcher limits in this environment.
+
+If you want to try Turbopack explicitly:
+
+```bash
+npm run dev:turbo
+```
+
+The app runs on `http://localhost:3000` by default and expects the backend API at `NEXT_PUBLIC_API_BASE_URL`.
 
 ## Implemented scope
 
