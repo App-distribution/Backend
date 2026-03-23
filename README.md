@@ -23,6 +23,23 @@ docker compose up --build
 
 The API will be available at `http://localhost:8080`.
 
+## Web Admin
+
+A new web admin app is available under `admin/`. It is a separate Next.js application for operating projects, builds and team access.
+
+Basic flow:
+
+```bash
+cd admin
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Default API target:
+
+- `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1`
+
 ## Run Locally with Gradle
 
 Start the infrastructure dependencies first:
