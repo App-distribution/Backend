@@ -48,9 +48,10 @@ java -jar build/libs/*-all.jar
 
 | Variable | Description | Default |
 |---|---|---|
-| `DATABASE_URL` | JDBC URL for Postgres | `jdbc:postgresql://localhost:5433/appdist` |
-| `DATABASE_USER` | Postgres username | `appdist` |
-| `DATABASE_PASSWORD` | Postgres password | required via `.env` |
+| `DATABASE_URL` | JDBC URL for Postgres | `jdbc:postgresql://localhost:5432/appdist` |
+| `POSTGRES_DB` | Database name for the `postgres` container | `appdist` |
+| `POSTGRES_USER` | Database user for the `postgres` container | `appdist` |
+| `POSTGRES_PASSWORD` | Database password for the `postgres` container | required via `.env` |
 | `MINIO_ENDPOINT` | MinIO server URL | `http://localhost:9000` |
 | `MINIO_PUBLIC_ENDPOINT` | Public MinIO URL for clients | `http://10.0.2.2:9000` |
 | `MINIO_ACCESS_KEY` | MinIO access key | `minioadmin` |
@@ -66,6 +67,7 @@ java -jar build/libs/*-all.jar
 
 - The repository does not ship real passwords, JWT secrets, or Firebase service-account credentials.
 - `application.conf` contains placeholders and the app will fail fast if you do not provide real secret values.
+- In Docker Compose, the backend connects to Postgres over the internal compose network using the `postgres` service hostname.
 - Keep `.env` private and never commit it to the public repository.
 
 ## API Endpoint Groups
