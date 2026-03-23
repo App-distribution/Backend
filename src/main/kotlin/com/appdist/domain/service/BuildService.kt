@@ -3,6 +3,7 @@ package com.appdist.domain.service
 import com.appdist.config.AppConfig
 import com.appdist.domain.model.*
 import com.appdist.domain.repository.*
+import com.appdist.infrastructure.apk.ApkMetadata
 import com.appdist.infrastructure.apk.ApkMetadataExtractor
 import com.appdist.infrastructure.storage.StorageClient
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -34,11 +35,12 @@ class BuildService(
     private val storageConfig: AppConfig.StorageConfig,
     private val projectRepository: ProjectRepository? = null,
     private val notificationService: NotificationService? = null,
+    private val apkExtractor: (File) -> ApkMetadata = { ApkMetadataExtractor.extract(it) },
 ) {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     suspend fun uploadBuild(request: UploadRequest): Build {
-        val metadata = ApkMetadataExtractor.extract(request.file)
+        val metadata = apkExtractor(request.file)
 
         val existing = buildRepository.findByChecksum(metadata.checksumSha256)
         if (existing != null) {

@@ -25,7 +25,7 @@ val FREE_EMAIL_DOMAINS = setOf(
 
 data class AuthTokens(val accessToken: String, val refreshToken: String)
 
-class AuthService(
+open class AuthService(
     private val userRepository: UserRepository,
     private val workspaceRepository: WorkspaceRepository,
     private val otpRepository: OtpRepository,
@@ -35,7 +35,7 @@ class AuthService(
     private val auditRepository: AuditRepository? = null,
 ) : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatchers.IO) {
 
-    suspend fun requestOtp(email: String): String {
+    open suspend fun requestOtp(email: String): String {
         val code = generateOtp(otpConfig.length)
         otpRepository.create(email, code, otpConfig.ttlMinutes)
         log.info { "OTP for $email: $code" }
