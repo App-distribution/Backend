@@ -10,6 +10,17 @@ bin/
 .env.*
 !.env.example
 .codex/
-admin/node_modules/
-admin/.next/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# App-specific local frontend files
 admin/.env.local
