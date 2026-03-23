@@ -5,6 +5,13 @@ import {
   getStoredTokens,
   setStoredTokens,
 } from "@/lib/session";
+import {
+  API_ERROR_MESSAGES,
+  API_ERROR_MESSAGE_BY_BACKEND_MESSAGE,
+  API_ERROR_MESSAGE_BY_CODE,
+  API_ERROR_MESSAGE_BY_STATUS,
+} from "@/lib/api-error-copy";
+import { notifyApiError, showUnauthorizedToast } from "@/lib/api-error-toast";
 import type {
   AuthTokens,
   Build,
@@ -105,6 +112,12 @@ type RequestInitWithMeta = RequestInit & {
   retryOnAuthFailure?: boolean;
 };
 
+type ApiErrorPayload = {
+  code?: string;
+  error?: string;
+  message?: string;
+};
+
 async function parseJson<T>(response: Response): Promise<T> {
   const text = await response.text();
   if (!text) return {} as T;
@@ -185,10 +198,36 @@ function mapDownloadUrlResponse(response: ApiDownloadUrlResponse): DownloadUrlRe
   };
 }
 
+function normalizeApiErrorMessage(status: number, message?: string, code?: string, authenticated = false) {
+  if (code === "INVALID_TOKEN") {
+    return authenticated ? API_ERROR_MESSAGES.invalidToken : API_ERROR_MESSAGES.tokenExpiredPublic;
+  }
+  if (code === "UNAUTHORIZED") {
+    return authenticated ? API_ERROR_MESSAGES.invalidToken : API_ERROR_MESSAGES.authFailed;
+  }
+  if (code && API_ERROR_MESSAGE_BY_CODE[code]) return API_ERROR_MESSAGE_BY_CODE[code];
+
+  if (!message) {
+    if (status === 401) {
+      return authenticated ? API_ERROR_MESSAGES.invalidToken : API_ERROR_MESSAGES.authFailed;
+    }
+    if (status >= 500) return API_ERROR_MESSAGES.server;
+    if (status in API_ERROR_MESSAGE_BY_STATUS) {
+      return API_ERROR_MESSAGE_BY_STATUS[status as keyof typeof API_ERROR_MESSAGE_BY_STATUS];
+    }
+    return API_ERROR_MESSAGES.requestFailed;
+  }
+
+  const lowered = message.toLowerCase();
+  if (API_ERROR_MESSAGE_BY_BACKEND_MESSAGE[lowered]) return API_ERROR_MESSAGE_BY_BACKEND_MESSAGE[lowered];
+  return message;
+}
+
 async function refreshTokens() {
   if (refreshPromise) return refreshPromise;
   const tokens = getStoredTokens();
   if (!tokens?.refreshToken) {
+    showUnauthorizedToast(API_ERROR_MESSAGES.sessionExpired);
     throw new ApiError("Session expired", 401, "SESSION_EXPIRED");
   }
 
@@ -201,8 +240,11 @@ async function refreshTokens() {
   })
     .then(async (response) => {
       if (!response.ok) {
-        const payload = await parseJson<{ error?: string; message?: string }>(response).catch(() => null);
-        throw new ApiError(payload?.message ?? "Failed to refresh session", response.status, payload?.error);
+        const payload = await parseJson<ApiErrorPayload>(response).catch(() => null);
+        const code = payload?.code ?? payload?.error;
+        const message = normalizeApiErrorMessage(response.status, payload?.message ?? "Failed to refresh session", code, true);
+        notifyApiError(response.status, message, true);
+        throw new ApiError(message, response.status, code);
       }
       const nextTokens = mapAuthTokens(await parseJson<ApiAuthTokens>(response));
       setStoredTokens(nextTokens);
@@ -230,6 +272,7 @@ async function request<T>(path: string, init: RequestInitWithMeta = {}): Promise
   if (authenticated) {
     const tokens = getStoredTokens();
     if (!tokens?.accessToken) {
+      showUnauthorizedToast(API_ERROR_MESSAGES.sessionExpired);
       throw new ApiError("Unauthorized", 401, "UNAUTHORIZED");
     }
     resolvedHeaders.set("Authorization", `Bearer ${tokens.accessToken}`);
@@ -253,8 +296,11 @@ async function request<T>(path: string, init: RequestInitWithMeta = {}): Promise
   }
 
   if (!response.ok) {
-    const payload = await parseJson<{ error?: string; message?: string }>(response).catch(() => null);
-    throw new ApiError(payload?.message ?? "Request failed", response.status, payload?.error);
+    const payload = await parseJson<ApiErrorPayload>(response).catch(() => null);
+    const code = payload?.code ?? payload?.error;
+    const message = normalizeApiErrorMessage(response.status, payload?.message ?? "Request failed", code, authenticated);
+    notifyApiError(response.status, message, authenticated);
+    throw new ApiError(message, response.status, code);
   }
 
   if (response.status === 204) return undefined as T;
@@ -357,6 +403,7 @@ export const api = {
     upload(payload: UploadBuildPayload, onProgress?: (progress: UploadProgressState) => void) {
       const tokens = getStoredTokens();
       if (!tokens?.accessToken) {
+        showUnauthorizedToast(API_ERROR_MESSAGES.sessionExpired);
         return Promise.reject(new ApiError("Unauthorized", 401, "UNAUTHORIZED"));
       }
 
@@ -392,14 +439,23 @@ export const api = {
             return;
           }
           try {
-            const payload = JSON.parse(xhr.responseText) as { error?: string; message?: string };
-            reject(new ApiError(payload.message ?? "Upload failed", xhr.status, payload.error));
+            const payload = JSON.parse(xhr.responseText) as ApiErrorPayload;
+            const code = payload.code ?? payload.error;
+            const message = normalizeApiErrorMessage(xhr.status, payload.message ?? "Upload failed", code, true);
+            notifyApiError(xhr.status, message, true);
+            reject(new ApiError(message, xhr.status, code));
           } catch {
-            reject(new ApiError("Upload failed", xhr.status));
+            const message = "Upload failed";
+            notifyApiError(xhr.status, message, true);
+            reject(new ApiError(message, xhr.status));
           }
         };
 
-        xhr.onerror = () => reject(new ApiError("Network error during upload", 0, "NETWORK_ERROR"));
+        xhr.onerror = () => {
+          const message = "Ошибка сети во время загрузки APK.";
+          notifyApiError(0, message, true);
+          reject(new ApiError(message, 0, "NETWORK_ERROR"));
+        };
         xhr.send(formData);
       });
     },
