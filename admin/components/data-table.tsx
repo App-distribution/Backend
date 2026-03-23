@@ -60,13 +60,13 @@ export function DataTable<TData>({
               </tr>
             ))}
           </thead>
-          <tbody className="bg-white">
+          <tbody className="bg-[var(--surface)]">
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
                 className={cn(
                   "border-b border-[var(--border)] transition last:border-b-0",
-                  onRowClick ? "cursor-pointer hover:bg-slate-50" : "",
+                  onRowClick ? "cursor-pointer hover:bg-[var(--surface-muted)]" : "",
                 )}
                 onClick={() => onRowClick?.(row.original)}
               >

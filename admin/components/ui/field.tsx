@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const baseFieldClass =
-  "w-full rounded-2xl border border-[var(--border)] bg-white px-3.5 py-2.5 text-sm text-[var(--text-strong)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-teal-500 focus:ring-4 focus:ring-teal-100";
+  "w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-sm text-[var(--text-strong)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--focus-ring)]";
 
 export function Label({ children }: { children: ReactNode }) {
   return <label className="mb-2 block text-sm font-semibold text-[var(--text)]">{children}</label>;

@@ -8,6 +8,7 @@ import { useMeQuery, useWorkspaceQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navigationItems = [
   { href: "/overview", label: "Overview" },
@@ -39,7 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen px-4 py-4 lg:px-6">
       <div className="mx-auto grid max-w-[1600px] gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="rounded-[calc(var(--radius)+0.25rem)] border border-[var(--border)] bg-[rgba(255,255,255,0.78)] p-4 shadow-[var(--shadow-soft)] backdrop-blur">
+        <aside className="rounded-[calc(var(--radius)+0.25rem)] border border-[var(--border)] bg-[var(--surface-overlay)] p-4 shadow-[var(--shadow-soft)] backdrop-blur">
           <div className="border-b border-[var(--border)] pb-4">
             <p className="text-xs uppercase tracking-[0.24em] text-[var(--text-muted)]">AppDistribution</p>
             <h1 className="mt-3 text-xl font-semibold text-[var(--text-strong)]">Release Console</h1>
@@ -58,7 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   className={cn(
                     "flex items-center justify-between rounded-2xl px-3 py-2.5 text-sm font-medium transition",
                     isActive
-                      ? "bg-[var(--primary)] text-white"
+                      ? "bg-[var(--primary)] text-[var(--primary-contrast)]"
                       : "text-[var(--text)] hover:bg-[var(--surface-muted)]",
                   )}
                 >
@@ -74,6 +75,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p className="mt-3 text-sm text-[var(--text)]">
               Role: <span className="font-semibold text-[var(--text-strong)]">{meQuery.data?.role ?? "—"}</span>
             </p>
+            <ThemeToggle className="mt-4 w-full justify-between" />
             <Button
               variant="secondary"
               className="mt-4 w-full"
@@ -88,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </aside>
 
         <main className="space-y-4">
-          <header className="rounded-[calc(var(--radius)+0.25rem)] border border-[var(--border)] bg-[rgba(255,255,255,0.85)] px-5 py-4 shadow-[var(--shadow-soft)] backdrop-blur">
+          <header className="rounded-[calc(var(--radius)+0.25rem)] border border-[var(--border)] bg-[var(--surface-overlay-strong)] px-5 py-4 shadow-[var(--shadow-soft)] backdrop-blur">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -103,7 +105,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <div className="rounded-2xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm text-[var(--text-muted)]">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--text-muted)]">
                   Search is scoped inside each page to match the current backend API.
                 </div>
                 {(role === "ADMIN" || role === "UPLOADER") && (

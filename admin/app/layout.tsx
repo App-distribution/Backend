@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import Script from "next/script";
 import { ToastProvider } from "@/components/toast-provider";
 import { AuthProvider } from "@/lib/auth-context";
 import { QueryProvider } from "@/lib/query-provider";
+import { ThemeProvider } from "@/lib/theme-provider";
+import { themeInitScript } from "@/lib/theme";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 import type { ReactNode } from "react";
@@ -25,14 +28,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="ru" className={`${uiFont.variable} ${monoFont.variable}`}>
+    <html lang="ru" suppressHydrationWarning className={`${uiFont.variable} ${monoFont.variable}`}>
       <body className="font-[var(--font-ui)] text-[var(--text-strong)] antialiased">
-        <QueryProvider>
-          <AuthProvider>
-            {children}
-            <ToastProvider />
-          </AuthProvider>
-        </QueryProvider>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
+        <ThemeProvider>
+          <QueryProvider>
+            <AuthProvider>
+              {children}
+              <ToastProvider />
+            </AuthProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -124,7 +124,7 @@ export default function ProjectDetailPage() {
             latestByChannel.map((build) => (
               <button
                 key={build.id}
-                className="rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-left transition hover:border-teal-500"
+                className="rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-left transition hover:border-[var(--primary)]"
                 onClick={() => setSelectedBuild(build)}
                 type="button"
               >

@@ -8,10 +8,11 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primary: "bg-[var(--primary)] text-white shadow-[var(--shadow-soft)] hover:bg-teal-700",
-  secondary: "border border-[var(--border)] bg-white text-[var(--text-strong)] hover:bg-[var(--surface-muted)]",
-  ghost: "text-[var(--text)] hover:bg-white/80",
-  danger: "bg-[var(--danger)] text-white hover:bg-red-700",
+  primary:
+    "bg-[var(--primary)] text-[var(--primary-contrast)] shadow-[var(--shadow-soft)] hover:bg-[var(--primary-hover)]",
+  secondary: "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-strong)] hover:bg-[var(--surface-muted)]",
+  ghost: "text-[var(--text)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]",
+  danger: "bg-[var(--danger)] text-[var(--danger-contrast)] hover:bg-[var(--danger-hover)]",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

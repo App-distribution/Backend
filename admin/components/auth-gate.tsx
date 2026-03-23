@@ -27,7 +27,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (!isReady || !isAuthenticated || meQuery.isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="rounded-3xl border border-[var(--border)] bg-white px-8 py-6 text-sm text-[var(--text-muted)] shadow-[var(--shadow-soft)]">
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] px-8 py-6 text-sm text-[var(--text-muted)] shadow-[var(--shadow-soft)]">
           Loading admin console…
         </div>
       </div>

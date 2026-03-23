@@ -52,7 +52,7 @@ export function ProjectCard({
           <Link
             className={cn(
               "inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition",
-              "bg-[var(--primary)] text-white shadow-[var(--shadow-soft)] hover:bg-teal-700",
+              "bg-[var(--primary)] text-[var(--primary-contrast)] shadow-[var(--shadow-soft)] hover:bg-[var(--primary-hover)]",
             )}
             href={`/projects/${project.id}`}
           >
@@ -60,7 +60,7 @@ export function ProjectCard({
           </Link>
           <Link
             className={cn(
-              "inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-semibold transition",
+              "inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold transition",
               "text-[var(--text-strong)] hover:bg-[var(--surface-muted)]",
             )}
             href={`/upload?projectId=${project.id}`}
