@@ -37,4 +37,14 @@ class RbacTest {
         val response = client.delete("/api/v1/projects/00000000-0000-0000-0000-000000000001")
         assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
+
+    @Test
+    fun `GET users-me with malformed bearer token returns 401`() = testApplication {
+        application { testModule() }
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val response = client.get("/api/v1/users/me") {
+            header(HttpHeaders.Authorization, "Bearer undefined")
+        }
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
 }

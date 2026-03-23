@@ -5,6 +5,7 @@ import com.appdist.config.AppConfig
 import com.appdist.domain.model.UserRole
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import io.ktor.http.auth.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -24,6 +25,10 @@ fun Application.configureAuth(jwtConfig: AppConfig.JwtConfig) {
     install(Authentication) {
         jwt(JWT_AUTH) {
             val algorithm = Algorithm.HMAC256(jwtConfig.secret)
+            authHeader { call ->
+                call.request.parseAuthorizationHeader()
+                    ?.takeIf(::isPlausibleBearerToken)
+            }
             verifier(
                 JWT.require(algorithm)
                     .withIssuer(jwtConfig.issuer)
@@ -46,4 +51,11 @@ fun Application.configureAuth(jwtConfig: AppConfig.JwtConfig) {
             }
         }
     }
+}
+
+private fun isPlausibleBearerToken(header: HttpAuthHeader): Boolean {
+    val bearer = header as? HttpAuthHeader.Single ?: return false
+    if (!bearer.authScheme.equals("Bearer", ignoreCase = true)) return false
+    val token = bearer.blob.trim()
+    return token.isNotBlank() && token.count { it == '.' } == 2
 }
