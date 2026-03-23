@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-appdist}
     ports:
-      - "5433:5432"
+      - 5433
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-appdist}"]
       interval: 5s
@@ -26,8 +26,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - 9000
+      - 9001
     volumes:
       - minio_data:/data
 
@@ -51,7 +51,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-app-distribution}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-app-distribution-clients}
     ports:
-      - "8080:8080"
+      - 8080
 
 volumes:
   postgres_data:
