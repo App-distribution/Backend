@@ -43,6 +43,9 @@ dependencies {
     // JWT
     implementation("com.auth0:java-jwt:${property("java_jwt_version")}")
 
+    // BCrypt
+    implementation("at.favre.lib:bcrypt:0.10.2")
+
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
