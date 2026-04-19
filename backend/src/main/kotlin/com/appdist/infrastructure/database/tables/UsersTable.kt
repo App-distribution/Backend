@@ -9,6 +9,7 @@ object UsersTable : Table("users") {
     val email = varchar("email", 255).uniqueIndex()
     val name = varchar("name", 255)
     val role = varchar("role", 50)
+    val passwordHash = varchar("password_hash", 255).default("")
     val fcmToken = varchar("fcm_token", 512).nullable()
     val createdAt = timestamp("created_at")
     override val primaryKey = PrimaryKey(id)

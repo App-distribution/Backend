@@ -3,6 +3,7 @@ package com.appdist.infrastructure.database.repository
 import com.appdist.domain.model.User
 import com.appdist.domain.model.UserRole
 import com.appdist.domain.repository.UserRepository
+import com.appdist.domain.repository.UserWithHash
 import com.appdist.infrastructure.database.tables.UsersTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
@@ -24,12 +25,25 @@ class UserRepositoryImpl : UserRepository {
             .singleOrNull()?.toUser()
     }
 
+    override suspend fun findByEmailWithHash(email: String): UserWithHash? = dbQuery {
+        UsersTable.selectAll().where { UsersTable.email eq email }
+            .singleOrNull()?.let { row ->
+                UserWithHash(row.toUser(), row[UsersTable.passwordHash])
+            }
+    }
+
     override suspend fun findAllByWorkspace(workspaceId: UUID): List<User> = dbQuery {
         UsersTable.selectAll().where { UsersTable.workspaceId eq workspaceId }
             .map { it.toUser() }
     }
 
-    override suspend fun create(workspaceId: UUID, email: String, name: String, role: UserRole): User {
+    override suspend fun create(
+        workspaceId: UUID,
+        email: String,
+        name: String,
+        role: UserRole,
+        passwordHash: String,
+    ): User {
         val id = UUID.randomUUID()
         val now = Clock.System.now()
         dbQuery {
@@ -39,11 +53,19 @@ class UserRepositoryImpl : UserRepository {
                 it[UsersTable.email] = email
                 it[UsersTable.name] = name
                 it[UsersTable.role] = role.name
+                it[UsersTable.passwordHash] = passwordHash
                 it[UsersTable.fcmToken] = null
                 it[UsersTable.createdAt] = now
             }
         }
         return User(id, workspaceId, email, name, role, null, now)
+    }
+
+    override suspend fun updatePasswordHash(userId: UUID, passwordHash: String) = dbQuery {
+        UsersTable.update({ UsersTable.id eq userId }) {
+            it[UsersTable.passwordHash] = passwordHash
+        }
+        Unit
     }
 
     override suspend fun updateFcmToken(userId: UUID, token: String?) = dbQuery {
@@ -62,7 +84,7 @@ class UserRepositoryImpl : UserRepository {
 
     private fun ResultRow.toUser() = User(
         id = this[UsersTable.id],
-        workspaceId = this[UsersTable.workspaceId],   // UUID? — nullable column
+        workspaceId = this[UsersTable.workspaceId],
         email = this[UsersTable.email],
         name = this[UsersTable.name],
         role = UserRole.valueOf(this[UsersTable.role]),
