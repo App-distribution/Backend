@@ -4,18 +4,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class RequestOtpRequest(@SerialName("email") val email: String)
-
-@Serializable
-data class VerifyOtpRequest(
+data class LoginRequest(
     @SerialName("email") val email: String,
-    @SerialName("otp") val otp: String
+    @SerialName("password") val password: String,
 )
 
 @Serializable
 data class TokenResponse(
     @SerialName("access_token") val accessToken: String,
-    @SerialName("refresh_token") val refreshToken: String
+    @SerialName("refresh_token") val refreshToken: String,
 )
 
 @Serializable
