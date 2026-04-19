@@ -78,7 +78,7 @@ fun LoginScreen(
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(
-                onDone = { viewModel.onAction(LoginAction.SubmitClicked) }
+                onDone = { viewModel.onAction(LoginAction.Submit) }
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -99,7 +99,7 @@ fun LoginScreen(
         Spacer(Modifier.height(16.dp))
 
         Button(
-            onClick = { viewModel.onAction(LoginAction.SubmitClicked) },
+            onClick = { viewModel.onAction(LoginAction.Submit) },
             enabled = state.email.isNotBlank() && state.password.isNotBlank() && !state.isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {

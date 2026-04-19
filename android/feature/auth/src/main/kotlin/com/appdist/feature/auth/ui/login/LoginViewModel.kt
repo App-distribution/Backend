@@ -25,7 +25,7 @@ data class LoginUiState(
 sealed interface LoginAction {
     data class EmailChanged(val value: String) : LoginAction
     data class PasswordChanged(val value: String) : LoginAction
-    data object SubmitClicked : LoginAction
+    data object Submit : LoginAction
 }
 
 sealed interface LoginEffect {
@@ -47,7 +47,7 @@ class LoginViewModel @Inject constructor(
         when (action) {
             is LoginAction.EmailChanged -> _state.update { it.copy(email = action.value, error = null) }
             is LoginAction.PasswordChanged -> _state.update { it.copy(password = action.value, error = null) }
-            LoginAction.SubmitClicked -> submit()
+            LoginAction.Submit -> submit()
         }
     }
 
