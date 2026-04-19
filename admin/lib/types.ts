@@ -108,3 +108,18 @@ export interface UploadProgressState {
   total: number;
   progress: number;
 }
+
+export interface CreateUserPayload {
+  email: string;
+  name: string;
+  role: "UPLOADER" | "TESTER" | "VIEWER";
+}
+
+export interface CreateUserResponse {
+  user: User;
+  generatedPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  generatedPassword: string;
+}

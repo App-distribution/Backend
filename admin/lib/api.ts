@@ -18,9 +18,12 @@ import type {
   BuildFilters,
   BuildUpdatePayload,
   CreateProjectPayload,
+  CreateUserPayload,
+  CreateUserResponse,
   DownloadUrlResponse,
   MessageResponse,
   Project,
+  ResetPasswordResponse,
   UpdateProfilePayload,
   UploadBuildPayload,
   UploadProgressState,
@@ -309,18 +312,11 @@ async function request<T>(path: string, init: RequestInitWithMeta = {}): Promise
 
 export const api = {
   auth: {
-    requestOtp(email: string) {
-      return request<MessageResponse>("/auth/request-otp", {
+    login(email: string, password: string) {
+      return request<ApiAuthTokens>("/auth/login", {
         authenticated: false,
         method: "POST",
-        body: JSON.stringify({ email }),
-      });
-    },
-    verifyOtp(email: string, otp: string) {
-      return request<ApiAuthTokens>("/auth/verify-otp", {
-        authenticated: false,
-        method: "POST",
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ email, password }),
       }).then(mapAuthTokens);
     },
   },
@@ -330,6 +326,28 @@ export const api = {
     },
     getUsers(workspaceId: string) {
       return request<ApiUser[]>(`/workspaces/${workspaceId}/users`).then((users) => users.map(mapUser));
+    },
+    createUser(workspaceId: string, payload: CreateUserPayload): Promise<CreateUserResponse> {
+      return request<{ user: ApiUser; generated_password: string }>(
+        `/workspaces/${workspaceId}/users`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: payload.email,
+            name: payload.name,
+            role: payload.role,
+          }),
+        }
+      ).then((res) => ({
+        user: mapUser(res.user),
+        generatedPassword: res.generated_password,
+      }));
+    },
+    resetPassword(workspaceId: string, userId: string): Promise<ResetPasswordResponse> {
+      return request<{ generated_password: string }>(
+        `/workspaces/${workspaceId}/users/${userId}/reset-password`,
+        { method: "POST" }
+      ).then((res) => ({ generatedPassword: res.generated_password }));
     },
   },
   users: {
