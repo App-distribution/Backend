@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,7 +30,7 @@ import com.appdist.core.common.AppError
 
 @Composable
 fun LoginScreen(
-    onNavigateToOtp: (String) -> Unit,
+    onNavigateToHome: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -37,7 +38,7 @@ fun LoginScreen(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is LoginEffect.NavigateToOtp -> onNavigateToOtp(effect.email)
+                LoginEffect.NavigateToHome -> onNavigateToHome()
             }
         }
     }
@@ -59,6 +60,21 @@ fun LoginScreen(
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = state.password,
+            onValueChange = { viewModel.onAction(LoginAction.PasswordChanged(it)) },
+            label = { Text("Пароль") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(
@@ -72,7 +88,7 @@ fun LoginScreen(
             Text(
                 text = when (error) {
                     is AppError.NoInternet -> "Нет подключения к сети"
-                    is AppError.Network -> "Ошибка сервера"
+                    is AppError.Network -> "Неверный email или пароль"
                     else -> "Ошибка. Попробуйте снова."
                 },
                 color = MaterialTheme.colorScheme.error,
@@ -84,13 +100,13 @@ fun LoginScreen(
 
         Button(
             onClick = { viewModel.onAction(LoginAction.SubmitClicked) },
-            enabled = state.email.isNotBlank() && !state.isLoading,
+            enabled = state.email.isNotBlank() && state.password.isNotBlank() && !state.isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {
             if (state.isLoading) {
                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
             } else {
-                Text("Получить код")
+                Text("Войти")
             }
         }
     }

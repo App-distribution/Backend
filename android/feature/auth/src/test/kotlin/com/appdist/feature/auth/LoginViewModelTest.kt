@@ -3,7 +3,7 @@ package com.appdist.feature.auth
 import app.cash.turbine.test
 import com.appdist.core.common.AppError
 import com.appdist.core.common.Result
-import com.appdist.feature.auth.domain.RequestOtpUseCase
+import com.appdist.feature.auth.domain.LoginUseCase
 import com.appdist.feature.auth.ui.login.LoginAction
 import com.appdist.feature.auth.ui.login.LoginEffect
 import com.appdist.feature.auth.ui.login.LoginViewModel
@@ -24,13 +24,13 @@ import org.junit.jupiter.api.Test
 class LoginViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
-    private val requestOtp = mockk<RequestOtpUseCase>()
+    private val loginUseCase = mockk<LoginUseCase>()
     private lateinit var vm: LoginViewModel
 
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        vm = LoginViewModel(requestOtp)
+        vm = LoginViewModel(loginUseCase)
     }
 
     @AfterEach
@@ -43,15 +43,15 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `successful submit emits NavigateToOtp effect`() = runTest {
-        coEvery { requestOtp("test@example.com") } returns Result.Success(Unit)
+    fun `successful submit emits NavigateToHome effect`() = runTest {
+        coEvery { loginUseCase("test@example.com", any()) } returns Result.Success(Unit)
         vm.onAction(LoginAction.EmailChanged("test@example.com"))
+        vm.onAction(LoginAction.PasswordChanged("password123"))
 
         vm.effects.test {
             vm.onAction(LoginAction.SubmitClicked)
             val effect = awaitItem()
-            assertTrue(effect is LoginEffect.NavigateToOtp)
-            assertEquals("test@example.com", (effect as LoginEffect.NavigateToOtp).email)
+            assertTrue(effect is LoginEffect.NavigateToHome)
             cancelAndIgnoreRemainingEvents()
         }
         assertFalse(vm.state.value.isLoading)
@@ -59,8 +59,9 @@ class LoginViewModelTest {
 
     @Test
     fun `failed submit sets error in state`() = runTest {
-        coEvery { requestOtp(any()) } returns Result.Error(AppError.NoInternet)
+        coEvery { loginUseCase(any(), any()) } returns Result.Error(AppError.NoInternet)
         vm.onAction(LoginAction.EmailChanged("test@example.com"))
+        vm.onAction(LoginAction.PasswordChanged("password123"))
         vm.onAction(LoginAction.SubmitClicked)
         assertEquals(AppError.NoInternet, vm.state.value.error)
         assertFalse(vm.state.value.isLoading)

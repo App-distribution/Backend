@@ -19,7 +19,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.appdist.feature.auth.ui.login.LoginScreen
-import com.appdist.feature.auth.ui.otp.OtpScreen
 import com.appdist.feature.browse.ui.builds.BuildsScreen
 import com.appdist.feature.browse.ui.projects.ProjectsScreen
 import com.appdist.feature.builddetail.ui.BuildDetailScreen
@@ -56,20 +55,9 @@ fun AppNavGraph(viewModel: AppNavViewModel = hiltViewModel()) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("auth/login") {
-                LoginScreen(onNavigateToOtp = { email ->
-                    navController.navigate("auth/otp/$email")
+                LoginScreen(onNavigateToHome = {
+                    navController.navigate("home") { popUpTo(0) { inclusive = true } }
                 })
-            }
-            composable(
-                "auth/otp/{email}",
-                arguments = listOf(navArgument("email") { type = NavType.StringType })
-            ) { backStack ->
-                OtpScreen(
-                    email = backStack.arguments?.getString("email") ?: "",
-                    onSuccess = {
-                        navController.navigate("home") { popUpTo(0) { inclusive = true } }
-                    }
-                )
             }
 
             composable("home") {
