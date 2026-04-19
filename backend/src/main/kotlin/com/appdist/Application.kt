@@ -1,7 +1,11 @@
 package com.appdist
 
 import com.appdist.config.AppConfig
+import com.appdist.domain.service.AuthService
 import com.appdist.infrastructure.database.DatabaseFactory
+import com.appdist.infrastructure.database.repository.RefreshTokenRepositoryImpl
+import com.appdist.infrastructure.database.repository.UserRepositoryImpl
+import com.appdist.infrastructure.database.repository.WorkspaceRepositoryImpl
 import com.appdist.plugins.*
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
@@ -19,6 +23,17 @@ fun Application.module() {
     val config = AppConfig.from(environment.config)
 
     DatabaseFactory.init(config.database)
+
+    config.adminBootstrap.email?.let { email ->
+        config.adminBootstrap.password?.let { password ->
+            kotlinx.coroutines.runBlocking {
+                AuthService(
+                    UserRepositoryImpl(), WorkspaceRepositoryImpl(),
+                    RefreshTokenRepositoryImpl(), config.jwt
+                ).bootstrapAdmin(email, password)
+            }
+        }
+    }
 
     // Firebase init — optional, disabled if credentials path not set
     initFirebase(config.firebase.credentialsPath)

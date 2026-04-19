@@ -16,14 +16,4 @@ data class ProjectDto(
 )
 
 @Serializable
-data class UserDto(
-    val id: String,
-    val email: String,
-    val name: String,
-    val role: String,
-    val workspaceId: String?,
-    val createdAt: String,
-)
-
-@Serializable
 data class UpdateProfileRequest(val name: String? = null, val fcmToken: String? = null)
