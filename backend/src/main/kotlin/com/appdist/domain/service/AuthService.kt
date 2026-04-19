@@ -1,5 +1,6 @@
 package com.appdist.domain.service
 
+import at.favre.lib.crypto.bcrypt.BCrypt
 import com.appdist.config.AppConfig
 import com.appdist.domain.model.UserRole
 import com.appdist.domain.repository.*
@@ -11,87 +12,61 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
+import java.security.SecureRandom
 import java.util.Date
 import java.util.UUID
 
 private val log = KotlinLogging.logger {}
 
-val FREE_EMAIL_DOMAINS = setOf(
-    "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.uk", "yahoo.co.in",
-    "hotmail.com", "hotmail.co.uk", "outlook.com", "live.com", "msn.com",
-    "icloud.com", "me.com", "mac.com", "protonmail.com", "proton.me",
-    "aol.com", "yandex.com", "yandex.ru", "mail.ru", "inbox.com",
-)
+private const val BCRYPT_COST = 12
+private const val PASSWORD_LENGTH = 12
+private val PASSWORD_CHARSET = ('A'..'Z') + ('a'..'z') + ('0'..'9')
 
 data class AuthTokens(val accessToken: String, val refreshToken: String)
 
 open class AuthService(
     private val userRepository: UserRepository,
     private val workspaceRepository: WorkspaceRepository,
-    private val otpRepository: OtpRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val jwtConfig: AppConfig.JwtConfig,
-    private val otpConfig: AppConfig.OtpConfig,
     private val auditRepository: AuditRepository? = null,
 ) : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatchers.IO) {
 
-    open suspend fun requestOtp(email: String): String {
-        val code = generateOtp(otpConfig.length)
-        otpRepository.create(email, code, otpConfig.ttlMinutes)
-        log.info { "OTP for $email: $code" }
-        return code
-    }
+    private val secureRandom = SecureRandom()
 
-    suspend fun verifyOtp(email: String, code: String): AuthTokens {
-        // 1. Verify OTP
-        otpRepository.findValid(email, code)
-            ?: error("Invalid or expired OTP")
-        otpRepository.markUsed(email, code)
-
-        // 2. Determine workspace slug from email domain
-        val domain = email.substringAfter("@").lowercase()
-        val slug = if (domain in FREE_EMAIL_DOMAINS) {
-            email.replace("@", "-at-").lowercase()
-        } else {
-            domain
-        }
-
-        // 3. Find or create workspace
-        // Race condition: concurrent first-logins from same domain → UNIQUE constraint on slug
-        val existingWorkspace = workspaceRepository.findBySlug(slug)
-        val workspaceJustCreated = existingWorkspace == null
-        val workspace = existingWorkspace ?: try {
-            workspaceRepository.create(name = slug, slug = slug)
-        } catch (_: Exception) {
-            workspaceRepository.findBySlug(slug)
-                ?: error("Failed to find or create workspace for slug=$slug")
-        }
-
-        // 4. Find or create user
-        val existingUser = userRepository.findByEmail(email)
-        val user = if (existingUser == null) {
-            val role = if (workspaceJustCreated) UserRole.ADMIN else UserRole.TESTER
-            val displayName = email.substringBefore("@")
-            val newUser = userRepository.create(workspace.id, email, displayName, role)
-            if (workspaceJustCreated) {
-                workspaceRepository.updateOwnerId(workspace.id, newUser.id)
-            }
-            newUser
-        } else {
-            existingUser
-        }
-
-        // 5. Issue tokens
-        val tokens = issueTokens(user)
-
-        // 6. Audit — fire-and-forget
+    suspend fun login(email: String, password: String): AuthTokens {
+        require(email.isNotBlank() && password.isNotBlank()) { "Email and password required" }
+        val user = userRepository.findByEmailWithHash(email)
+            ?: throw InvalidCredentialsException()
+        val verified = BCrypt.verifyer().verify(password.toCharArray(), user.passwordHash).verified
+        if (!verified) throw InvalidCredentialsException()
+        val tokens = issueTokens(user.user)
         launch {
             runCatching {
-                auditRepository?.log(user.id, "user.login", "user", user.id)
+                auditRepository?.log(user.user.id, "user.login", "user", user.user.id)
             }.onFailure { log.warn(it) { "Audit log failed for user.login" } }
         }
-
         return tokens
+    }
+
+    suspend fun createUser(
+        adminWorkspaceId: UUID,
+        email: String,
+        name: String,
+        role: UserRole,
+    ): Pair<com.appdist.domain.model.User, String> {
+        require(role != UserRole.ADMIN) { "Cannot create ADMIN via this endpoint" }
+        val plainPassword = generatePassword()
+        val hash = BCrypt.withDefaults().hashToString(BCRYPT_COST, plainPassword.toCharArray())
+        val user = userRepository.create(adminWorkspaceId, email, name, role, hash)
+        return user to plainPassword
+    }
+
+    suspend fun resetPassword(userId: UUID): String {
+        val plainPassword = generatePassword()
+        val hash = BCrypt.withDefaults().hashToString(BCRYPT_COST, plainPassword.toCharArray())
+        userRepository.updatePasswordHash(userId, hash)
+        return plainPassword
     }
 
     suspend fun refreshToken(token: String): AuthTokens {
@@ -102,6 +77,22 @@ open class AuthService(
             ?: error("User not found")
         return issueTokens(user)
     }
+
+    suspend fun bootstrapAdmin(email: String, password: String) {
+        if (userRepository.findByEmail(email) != null) return
+        val domain = email.substringAfter("@").lowercase()
+        val slug = if (domain in FREE_EMAIL_DOMAINS) email.replace("@", "-at-").lowercase() else domain
+        val workspace = workspaceRepository.findBySlug(slug)
+            ?: workspaceRepository.create(name = slug, slug = slug)
+        val hash = BCrypt.withDefaults().hashToString(BCRYPT_COST, password.toCharArray())
+        val admin = userRepository.create(workspace.id, email, email.substringBefore("@"), UserRole.ADMIN, hash)
+        workspaceRepository.updateOwnerId(workspace.id, admin.id)
+        log.info { "Bootstrap admin created: $email" }
+    }
+
+    private fun generatePassword(): String = (1..PASSWORD_LENGTH)
+        .map { PASSWORD_CHARSET[secureRandom.nextInt(PASSWORD_CHARSET.size)] }
+        .joinToString("")
 
     private suspend fun issueTokens(user: com.appdist.domain.model.User): AuthTokens {
         requireNotNull(user.workspaceId) { "Cannot issue token for user ${user.id} with no workspace" }
@@ -121,10 +112,13 @@ open class AuthService(
         refreshTokenRepository.create(user.id, rawRefreshToken, jwtConfig.refreshTokenTtlDays)
         return AuthTokens(accessToken, rawRefreshToken)
     }
-
-    private val secureRandom = java.security.SecureRandom()
-
-    private fun generateOtp(length: Int) = (0 until length)
-        .map { secureRandom.nextInt(10) }
-        .joinToString("")
 }
+
+class InvalidCredentialsException : Exception("Invalid credentials")
+
+val FREE_EMAIL_DOMAINS = setOf(
+    "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.uk", "yahoo.co.in",
+    "hotmail.com", "hotmail.co.uk", "outlook.com", "live.com", "msn.com",
+    "icloud.com", "me.com", "mac.com", "protonmail.com", "proton.me",
+    "aol.com", "yandex.com", "yandex.ru", "mail.ru", "inbox.com",
+)

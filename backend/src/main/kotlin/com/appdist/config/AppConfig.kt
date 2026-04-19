@@ -6,8 +6,8 @@ data class AppConfig(
     val database: DatabaseConfig,
     val storage: StorageConfig,
     val jwt: JwtConfig,
-    val otp: OtpConfig,
     val firebase: FirebaseConfig,
+    val adminBootstrap: AdminBootstrapConfig,
 ) {
     data class DatabaseConfig(
         val url: String,
@@ -28,12 +28,12 @@ data class AppConfig(
         val accessTokenTtlMinutes: Long,
         val refreshTokenTtlDays: Long,
     )
-    data class OtpConfig(
-        val ttlMinutes: Long,
-        val length: Int,
-    )
     data class FirebaseConfig(
         val credentialsPath: String?,
+    )
+    data class AdminBootstrapConfig(
+        val email: String?,
+        val password: String?,
     )
 
     companion object {
@@ -57,12 +57,14 @@ data class AppConfig(
                 accessTokenTtlMinutes = config.property("jwt.accessTokenTtlMinutes").getString().toLong(),
                 refreshTokenTtlDays = config.property("jwt.refreshTokenTtlDays").getString().toLong(),
             ),
-            otp = OtpConfig(
-                ttlMinutes = config.property("otp.ttlMinutes").getString().toLong(),
-                length = config.property("otp.length").getString().toInt(),
-            ),
             firebase = FirebaseConfig(
                 credentialsPath = config.propertyOrNull("firebase.credentialsPath")?.getString(),
+            ),
+            adminBootstrap = AdminBootstrapConfig(
+                email = config.propertyOrNull("admin.email")?.getString()
+                    ?: System.getenv("ADMIN_EMAIL"),
+                password = config.propertyOrNull("admin.password")?.getString()
+                    ?: System.getenv("ADMIN_PASSWORD"),
             ),
         )
     }

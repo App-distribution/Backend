@@ -13,7 +13,6 @@ import io.ktor.server.routing.*
 fun Application.configureRouting(config: AppConfig) {
     val userRepo = UserRepositoryImpl()
     val workspaceRepo = WorkspaceRepositoryImpl()
-    val otpRepo = OtpRepositoryImpl()
     val refreshTokenRepo = RefreshTokenRepositoryImpl()
     val auditRepo = AuditRepositoryImpl()
     val buildRepo = BuildRepositoryImpl()
@@ -22,10 +21,8 @@ fun Application.configureRouting(config: AppConfig) {
     val authService = AuthService(
         userRepository = userRepo,
         workspaceRepository = workspaceRepo,
-        otpRepository = otpRepo,
         refreshTokenRepository = refreshTokenRepo,
         jwtConfig = config.jwt,
-        otpConfig = config.otp,
         auditRepository = auditRepo,
     )
 
