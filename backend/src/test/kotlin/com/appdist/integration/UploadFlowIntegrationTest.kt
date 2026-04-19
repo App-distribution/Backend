@@ -21,11 +21,11 @@ class UploadFlowIntegrationTest : IntegrationTestBase() {
         application { integrationTestModule() }
         val client = createClient { install(ContentNegotiation) { json() } }
 
-        // Login
-        val email = "uploader@upload-test-${System.currentTimeMillis()}.com"
-        client.post("/api/v1/auth/request-otp") { contentType(ContentType.Application.Json); setBody(RequestOtpRequest(email)) }
-        val otp = captureLastOtp(email)
-        val loginResponse = client.post("/api/v1/auth/verify-otp") { contentType(ContentType.Application.Json); setBody(VerifyOtpRequest(email, otp)) }
+        // Login as admin
+        val loginResponse = client.post("/api/v1/auth/login") {
+            contentType(ContentType.Application.Json)
+            setBody(LoginRequest(TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD))
+        }
         val token = loginResponse.body<AuthResponse>().accessToken
 
         // Get workspace

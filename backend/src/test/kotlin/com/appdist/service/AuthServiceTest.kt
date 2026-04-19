@@ -4,12 +4,14 @@ import com.appdist.TestDatabase
 import com.appdist.config.AppConfig
 import com.appdist.domain.model.UserRole
 import com.appdist.domain.service.AuthService
+import com.appdist.domain.service.InvalidCredentialsException
 import com.appdist.infrastructure.database.repository.*
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertFailsWith
 
 class AuthServiceTest {
     private lateinit var authService: AuthService
@@ -20,7 +22,6 @@ class AuthServiceTest {
         accessTokenTtlMinutes = 60L,
         refreshTokenTtlDays = 30L,
     )
-    private val otpConfig = AppConfig.OtpConfig(ttlMinutes = 5L, length = 6)
 
     @BeforeTest
     fun setup() {
@@ -29,77 +30,68 @@ class AuthServiceTest {
         authService = AuthService(
             userRepository = UserRepositoryImpl(),
             workspaceRepository = WorkspaceRepositoryImpl(),
-            otpRepository = OtpRepositoryImpl(),
             refreshTokenRepository = RefreshTokenRepositoryImpl(),
             jwtConfig = jwtConfig,
-            otpConfig = otpConfig,
         )
     }
 
     @Test
-    fun `requestOtp creates OTP for new email`() = runTest {
-        val otp = authService.requestOtp("test@example.com")
-        assertNotNull(otp)
-        assertEquals(6, otp.length)
+    fun `bootstrapAdmin creates admin user with correct role`() = runTest {
+        authService.bootstrapAdmin("admin@example.com", "securepassword123")
+        val user = UserRepositoryImpl().findByEmail("admin@example.com")
+        assertNotNull(user)
+        assertEquals(UserRole.ADMIN, user.role)
     }
 
     @Test
-    fun `verifyOtp with valid code auto-creates workspace and user`() = runTest {
-        val email = "alice@acme.com"
-        val otp = authService.requestOtp(email)
-        val tokens = authService.verifyOtp(email, otp)
+    fun `bootstrapAdmin is idempotent - second call does not throw`() = runTest {
+        authService.bootstrapAdmin("admin@example.com", "password1")
+        authService.bootstrapAdmin("admin@example.com", "password2")
+        val user = UserRepositoryImpl().findByEmail("admin@example.com")
+        assertNotNull(user)
+    }
+
+    @Test
+    fun `login returns tokens for valid credentials`() = runTest {
+        authService.bootstrapAdmin("login@example.com", "correctpassword")
+        val tokens = authService.login("login@example.com", "correctpassword")
         assertNotNull(tokens.accessToken)
         assertNotNull(tokens.refreshToken)
+        assert(tokens.accessToken.isNotBlank())
+        assert(tokens.refreshToken.isNotBlank())
     }
 
     @Test
-    fun `verifyOtp first user from domain gets Admin role`() = runTest {
-        val email = "founder@newcorp.com"
-        val otp = authService.requestOtp(email)
-        authService.verifyOtp(email, otp)
-        val user = UserRepositoryImpl().findByEmail(email)
-        assertEquals(UserRole.ADMIN, user?.role)
+    fun `login throws InvalidCredentialsException for wrong password`() = runTest {
+        authService.bootstrapAdmin("wrong@example.com", "rightpassword")
+        assertFailsWith<InvalidCredentialsException> {
+            authService.login("wrong@example.com", "wrongpassword")
+        }
     }
 
     @Test
-    fun `verifyOtp second user from same domain gets Tester role`() = runTest {
-        val email1 = "admin@startupxyz.com"
-        val email2 = "dev@startupxyz.com"
-        val otp1 = authService.requestOtp(email1)
-        authService.verifyOtp(email1, otp1)
-        val otp2 = authService.requestOtp(email2)
-        authService.verifyOtp(email2, otp2)
-        val user2 = UserRepositoryImpl().findByEmail(email2)
-        assertEquals(UserRole.TESTER, user2?.role)
-    }
-
-    @Test
-    fun `verifyOtp free email domain creates isolated workspace`() = runTest {
-        val email = "someone@gmail.com"
-        val otp = authService.requestOtp(email)
-        authService.verifyOtp(email, otp)
-        val user = UserRepositoryImpl().findByEmail(email)
-        val workspace = WorkspaceRepositoryImpl().findById(user!!.workspaceId!!)
-        assertEquals("someone-at-gmail.com", workspace?.slug)
-    }
-
-    @Test
-    fun `verifyOtp with invalid OTP throws exception`() = runTest {
-        authService.requestOtp("user@test.com")
-        try {
-            authService.verifyOtp("user@test.com", "000000")
-            assert(false) { "should have thrown" }
-        } catch (e: Exception) {
-            assert(e.message?.contains("Invalid") == true || e.message?.contains("expired") == true)
+    fun `login throws InvalidCredentialsException for unknown email`() = runTest {
+        assertFailsWith<InvalidCredentialsException> {
+            authService.login("nobody@example.com", "anypassword")
         }
     }
 
     @Test
     fun `refreshToken returns new tokens and revokes old`() = runTest {
-        val email = "refresh@example.com"
-        val otp = authService.requestOtp(email)
-        val tokens = authService.verifyOtp(email, otp)
+        authService.bootstrapAdmin("refresh@example.com", "mypassword")
+        val tokens = authService.login("refresh@example.com", "mypassword")
         val newTokens = authService.refreshToken(tokens.refreshToken)
         assertNotNull(newTokens.accessToken)
+        assertNotNull(newTokens.refreshToken)
+    }
+
+    @Test
+    fun `bootstrapAdmin creates workspace for corporate domain`() = runTest {
+        authService.bootstrapAdmin("user@mycorp.com", "adminpass")
+        val user = UserRepositoryImpl().findByEmail("user@mycorp.com")
+        assertNotNull(user)
+        val workspace = WorkspaceRepositoryImpl().findById(user.workspaceId!!)
+        assertNotNull(workspace)
+        assertEquals("mycorp.com", workspace.slug)
     }
 }

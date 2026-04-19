@@ -11,15 +11,10 @@ import com.appdist.plugins.*
 import com.appdist.api.routes.*
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
-import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.runBlocking
 
 abstract class IntegrationTestBase {
     companion object {
-        // Capture OTPs for test use
-        private val capturedOtps = ConcurrentHashMap<String, String>()
-        fun recordOtp(email: String, otp: String) { capturedOtps[email] = otp }
-        fun captureLastOtp(email: String): String = capturedOtps[email] ?: error("No OTP captured for $email")
-
         val testJwtConfig = AppConfig.JwtConfig(
             secret = "integration-test-secret-key-32-chars-min",
             issuer = "appdist",
@@ -27,7 +22,13 @@ abstract class IntegrationTestBase {
             accessTokenTtlMinutes = 60L,
             refreshTokenTtlDays = 30L,
         )
-        val testOtpConfig = AppConfig.OtpConfig(ttlMinutes = 5L, length = 6)
+
+        const val TEST_ADMIN_EMAIL = "admin@integration-test.com"
+        const val TEST_ADMIN_PASSWORD = "integrationtestpassword"
+
+        init {
+            IntegrationContainers.initDatabase()
+        }
     }
 
     fun Application.integrationTestModule() {
@@ -38,20 +39,16 @@ abstract class IntegrationTestBase {
         val workspaceRepo = WorkspaceRepositoryImpl()
         val auditRepo = AuditRepositoryImpl()
         val projectRepo = ProjectRepositoryImpl()
+        val refreshTokenRepo = RefreshTokenRepositoryImpl()
 
-        // AuthService with OTP capture hook for tests
-        val authService = object : AuthService(
-            userRepo, workspaceRepo,
-            OtpRepositoryImpl(), RefreshTokenRepositoryImpl(),
-            testJwtConfig, testOtpConfig,
+        val authService = AuthService(
+            userRepo, workspaceRepo, refreshTokenRepo,
+            testJwtConfig,
             auditRepository = auditRepo,
-        ) {
-            override suspend fun requestOtp(email: String): String {
-                val otp = super.requestOtp(email)
-                recordOtp(email, otp)
-                return otp
-            }
-        }
+        )
+
+        // Seed admin user for integration tests (idempotent)
+        runBlocking { authService.bootstrapAdmin(TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD) }
 
         configureSerialization()
         configureStatusPages()
@@ -76,6 +73,7 @@ abstract class IntegrationTestBase {
                 uploadRoutes(buildService)
                 projectRoutes(projectRepo, auditRepo, workspaceRepo)
                 userRoutes(userRepo)
+                userManagementRoutes(authService, userRepo)
             }
         }
     }

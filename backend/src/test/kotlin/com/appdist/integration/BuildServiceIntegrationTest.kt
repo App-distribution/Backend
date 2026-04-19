@@ -63,6 +63,7 @@ class BuildServiceIntegrationTest {
             email = "uploader-$uniqueSuffix@bs-test.com",
             name = "Test Uploader",
             role = UserRole.ADMIN,
+            passwordHash = "\$2a\$12\$testHashPlaceholderForBuildServiceIntegrationTest",
         )
         uploaderId = user.id
 

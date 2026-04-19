@@ -3,6 +3,7 @@ package com.appdist.integration
 import com.appdist.config.AppConfig
 import com.appdist.domain.model.UserRole
 import com.appdist.domain.service.AuthService
+import com.appdist.domain.service.InvalidCredentialsException
 import com.appdist.infrastructure.database.repository.*
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
@@ -21,7 +22,6 @@ class AuthServiceIntegrationTest {
             accessTokenTtlMinutes = 60L,
             refreshTokenTtlDays = 30L,
         )
-        private val otpConfig = AppConfig.OtpConfig(ttlMinutes = 5L, length = 6)
 
         init {
             IntegrationContainers.initDatabase()
@@ -35,87 +35,57 @@ class AuthServiceIntegrationTest {
         authService = AuthService(
             userRepository = UserRepositoryImpl(),
             workspaceRepository = WorkspaceRepositoryImpl(),
-            otpRepository = OtpRepositoryImpl(),
             refreshTokenRepository = RefreshTokenRepositoryImpl(),
             jwtConfig = jwtConfig,
-            otpConfig = otpConfig,
             auditRepository = AuditRepositoryImpl(),
         )
     }
 
     @Test
-    fun `sendOtp inserts OTP in DB and returns 6-digit code`() = runTest {
-        val email = "otp-test-${System.currentTimeMillis()}@corp-auth.com"
-        val otp = authService.requestOtp(email)
-
-        assertNotNull(otp)
-        assertEquals(6, otp.length)
-        assertTrue(otp.all { it.isDigit() }, "OTP should be all digits: $otp")
-    }
-
-    @Test
-    fun `verifyOtp creates workspace and user with Admin role for new domain`() = runTest {
-        val email = "founder-${System.currentTimeMillis()}@newcorp-auth.com"
-
-        val otp = authService.requestOtp(email)
-        val tokens = authService.verifyOtp(email, otp)
-
-        assertNotNull(tokens.accessToken)
-        assertNotNull(tokens.refreshToken)
-        assertTrue(tokens.accessToken.isNotBlank())
-        assertTrue(tokens.refreshToken.isNotBlank())
+    fun `bootstrapAdmin creates admin user`() = runTest {
+        val email = "bootstrap-${System.currentTimeMillis()}@corp-auth.com"
+        authService.bootstrapAdmin(email, "securepassword")
 
         val user = UserRepositoryImpl().findByEmail(email)
         assertNotNull(user)
         assertEquals(UserRole.ADMIN, user.role)
         assertNotNull(user.workspaceId)
-
-        val workspace = WorkspaceRepositoryImpl().findById(user.workspaceId!!)
-        assertNotNull(workspace)
     }
 
     @Test
-    fun `verifyOtp second user from same domain gets Tester role`() = runTest {
-        val domain = "samecorp-${System.currentTimeMillis()}.com"
-        val email1 = "admin@$domain"
-        val email2 = "dev@$domain"
+    fun `login returns tokens for valid credentials`() = runTest {
+        val email = "login-${System.currentTimeMillis()}@corp-auth.com"
+        authService.bootstrapAdmin(email, "correctpassword")
 
-        val otp1 = authService.requestOtp(email1)
-        authService.verifyOtp(email1, otp1)
-
-        val otp2 = authService.requestOtp(email2)
-        authService.verifyOtp(email2, otp2)
-
-        val user2 = UserRepositoryImpl().findByEmail(email2)
-        assertNotNull(user2)
-        assertEquals(UserRole.TESTER, user2.role)
-
-        // Both users should share the same workspace
-        val user1 = UserRepositoryImpl().findByEmail(email1)
-        assertNotNull(user1)
-        assertEquals(user1.workspaceId, user2.workspaceId)
+        val tokens = authService.login(email, "correctpassword")
+        assertNotNull(tokens.accessToken)
+        assertNotNull(tokens.refreshToken)
+        assertTrue(tokens.accessToken.isNotBlank())
+        assertTrue(tokens.refreshToken.isNotBlank())
     }
 
     @Test
-    fun `verifyOtp with invalid OTP throws exception`() = runTest {
-        val email = "invalid-otp-${System.currentTimeMillis()}@corp-auth.com"
-        authService.requestOtp(email)
+    fun `login throws InvalidCredentialsException for wrong password`() = runTest {
+        val email = "wrong-pass-${System.currentTimeMillis()}@corp-auth.com"
+        authService.bootstrapAdmin(email, "rightpassword")
 
-        val exception = assertFailsWith<IllegalStateException> {
-            authService.verifyOtp(email, "000000")
+        assertFailsWith<InvalidCredentialsException> {
+            authService.login(email, "wrongpassword")
         }
-        assertTrue(
-            exception.message?.contains("Invalid") == true || exception.message?.contains("expired") == true,
-            "Expected invalid/expired OTP error, got: ${exception.message}"
-        )
+    }
+
+    @Test
+    fun `login throws InvalidCredentialsException for unknown email`() = runTest {
+        assertFailsWith<InvalidCredentialsException> {
+            authService.login("nobody-${System.currentTimeMillis()}@corp-auth.com", "anypassword")
+        }
     }
 
     @Test
     fun `refreshToken returns new tokens and revokes old`() = runTest {
         val email = "refresh-${System.currentTimeMillis()}@corp-auth.com"
-
-        val otp = authService.requestOtp(email)
-        val tokens = authService.verifyOtp(email, otp)
+        authService.bootstrapAdmin(email, "mypassword")
+        val tokens = authService.login(email, "mypassword")
 
         val newTokens = authService.refreshToken(tokens.refreshToken)
         assertNotNull(newTokens.accessToken)
@@ -133,21 +103,15 @@ class AuthServiceIntegrationTest {
     }
 
     @Test
-    fun `verifyOtp with free email domain creates isolated workspace`() = runTest {
-        val email = "someone-${System.currentTimeMillis()}@gmail.com"
-
-        val otp = authService.requestOtp(email)
-        authService.verifyOtp(email, otp)
+    fun `bootstrapAdmin creates workspace with domain slug for corporate email`() = runTest {
+        val ts = System.currentTimeMillis()
+        val email = "founder@newcorp-$ts.com"
+        authService.bootstrapAdmin(email, "adminpass")
 
         val user = UserRepositoryImpl().findByEmail(email)
         assertNotNull(user)
-
         val workspace = WorkspaceRepositoryImpl().findById(user.workspaceId!!)
         assertNotNull(workspace)
-        // Free email domain → slug is derived from email, not domain
-        assertTrue(
-            workspace.slug.contains("gmail"),
-            "Expected workspace slug to contain 'gmail' for free email domain, got: ${workspace.slug}"
-        )
+        assertTrue(workspace.slug.contains("newcorp-$ts"), "Expected slug to contain domain, got: ${workspace.slug}")
     }
 }

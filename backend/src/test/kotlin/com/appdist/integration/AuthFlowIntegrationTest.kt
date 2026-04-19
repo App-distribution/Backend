@@ -1,8 +1,7 @@
 package com.appdist.integration
 
 import com.appdist.api.dto.AuthResponse
-import com.appdist.api.dto.RequestOtpRequest
-import com.appdist.api.dto.VerifyOtpRequest
+import com.appdist.api.dto.LoginRequest
 import com.appdist.infrastructure.database.tables.UsersTable
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -19,57 +18,34 @@ import kotlin.test.assertNotNull
 class AuthFlowIntegrationTest : IntegrationTestBase() {
 
     @Test
-    fun `full auth flow - new user gets workspace and Admin role`() = testApplication {
+    fun `full auth flow - bootstrap admin can login and receives tokens`() = testApplication {
         application { integrationTestModule() }
         val client = createClient { install(ContentNegotiation) { json() } }
 
-        val email = "founder@testcorp-${System.currentTimeMillis()}.com"
-
-        val otpResponse = client.post("/api/v1/auth/request-otp") {
+        val loginResponse = client.post("/api/v1/auth/login") {
             contentType(ContentType.Application.Json)
-            setBody(RequestOtpRequest(email))
+            setBody(LoginRequest(TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD))
         }
-        assertEquals(HttpStatusCode.OK, otpResponse.status)
-
-        val capturedOtp = captureLastOtp(email)
-
-        val verifyResponse = client.post("/api/v1/auth/verify-otp") {
-            contentType(ContentType.Application.Json)
-            setBody(VerifyOtpRequest(email, capturedOtp))
-        }
-        assertEquals(HttpStatusCode.OK, verifyResponse.status)
-        val tokens = verifyResponse.body<AuthResponse>()
+        assertEquals(HttpStatusCode.OK, loginResponse.status)
+        val tokens = loginResponse.body<AuthResponse>()
         assertNotNull(tokens.accessToken)
         assertNotNull(tokens.refreshToken)
 
         transaction {
-            val user = UsersTable.selectAll().where { UsersTable.email eq email }.single()
+            val user = UsersTable.selectAll().where { UsersTable.email eq TEST_ADMIN_EMAIL }.single()
             assertEquals("ADMIN", user[UsersTable.role])
         }
     }
 
     @Test
-    fun `second user from same domain gets Tester role`() = testApplication {
+    fun `login with wrong password returns 401`() = testApplication {
         application { integrationTestModule() }
         val client = createClient { install(ContentNegotiation) { json() } }
 
-        val domain = "shared-${System.currentTimeMillis()}.com"
-        val email1 = "admin@$domain"
-        val email2 = "dev@$domain"
-
-        client.post("/api/v1/auth/request-otp") { contentType(ContentType.Application.Json); setBody(RequestOtpRequest(email1)) }
-        client.post("/api/v1/auth/verify-otp") { contentType(ContentType.Application.Json); setBody(VerifyOtpRequest(email1, captureLastOtp(email1))) }
-
-        client.post("/api/v1/auth/request-otp") { contentType(ContentType.Application.Json); setBody(RequestOtpRequest(email2)) }
-        val verifyResponse = client.post("/api/v1/auth/verify-otp") {
+        val loginResponse = client.post("/api/v1/auth/login") {
             contentType(ContentType.Application.Json)
-            setBody(VerifyOtpRequest(email2, captureLastOtp(email2)))
+            setBody(LoginRequest(TEST_ADMIN_EMAIL, "wrongpassword"))
         }
-        assertEquals(HttpStatusCode.OK, verifyResponse.status)
-
-        transaction {
-            val user2 = UsersTable.selectAll().where { UsersTable.email eq email2 }.single()
-            assertEquals("TESTER", user2[UsersTable.role])
-        }
+        assertEquals(HttpStatusCode.Unauthorized, loginResponse.status)
     }
 }

@@ -11,7 +11,7 @@ object TestDatabase {
         transaction {
             SchemaUtils.create(
                 WorkspacesTable, UsersTable, ProjectsTable, BuildsTable,
-                OtpCodesTable, RefreshTokensTable, InstallEventsTable,
+                RefreshTokensTable, InstallEventsTable,
                 DownloadEventsTable, AuditLogsTable
             )
         }
@@ -21,12 +21,12 @@ object TestDatabase {
         transaction {
             SchemaUtils.drop(
                 InstallEventsTable, DownloadEventsTable, AuditLogsTable,
-                RefreshTokensTable, OtpCodesTable, BuildsTable,
+                RefreshTokensTable, BuildsTable,
                 ProjectsTable, UsersTable, WorkspacesTable,
             )
             SchemaUtils.create(
                 WorkspacesTable, UsersTable, ProjectsTable, BuildsTable,
-                OtpCodesTable, RefreshTokensTable, InstallEventsTable,
+                RefreshTokensTable, InstallEventsTable,
                 DownloadEventsTable, AuditLogsTable,
             )
         }

@@ -11,6 +11,7 @@ class DatabaseTest {
     @Test
     fun `tables created successfully`() {
         TestDatabase.init()
+        TestDatabase.reset()
         transaction {
             val count = UsersTable.selectAll().count()
             assertEquals(0L, count)
