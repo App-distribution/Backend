@@ -43,6 +43,7 @@ fun Application.configureRouting(config: AppConfig) {
 
     routing {
         route("/api/v1") {
+            publicRoutes(projectRepo, buildService)
             authRoutes(authService)
             buildRoutes(buildService)
             uploadRoutes(buildService)

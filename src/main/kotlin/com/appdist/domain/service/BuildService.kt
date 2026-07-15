@@ -125,6 +125,19 @@ class BuildService(
         return url
     }
 
+    suspend fun getPublicBuild(buildId: UUID): Build {
+        val build = buildRepository.findById(buildId) ?: error("Build not found")
+        val isVisible = build.status == BuildStatus.ACTIVE || build.status == BuildStatus.MANDATORY
+        val isExpired = build.expiryDate?.let { it <= Clock.System.now() } ?: false
+        check(isVisible && !isExpired) { "Build is not available for download" }
+        return build
+    }
+
+    suspend fun getPublicDownloadUrl(buildId: UUID): String {
+        val build = getPublicBuild(buildId)
+        return storageClient.generateDownloadUrl(build.storageKey, ttlMinutes = 15L)
+    }
+
     suspend fun listRecentByWorkspace(workspaceId: UUID, limit: Int): List<Build> =
         buildRepository.listRecent(workspaceId, limit)
 

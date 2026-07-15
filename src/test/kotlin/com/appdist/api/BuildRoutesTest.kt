@@ -43,6 +43,7 @@ class BuildRoutesTest {
 
     private val storageConfig = AppConfig.StorageConfig(
         endpoint = "http://localhost:9000",
+        publicEndpoint = "http://localhost:9000",
         accessKey = "minioadmin",
         secretKey = "minioadmin",
         bucket = "test-bucket",

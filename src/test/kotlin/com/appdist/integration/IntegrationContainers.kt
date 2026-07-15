@@ -45,6 +45,7 @@ object IntegrationContainers {
 
     val storageConfig: AppConfig.StorageConfig get() = AppConfig.StorageConfig(
         endpoint = minioEndpoint,
+        publicEndpoint = minioEndpoint,
         accessKey = "minioadmin",
         secretKey = "test-minio-password",
         bucket = "appdist-test",

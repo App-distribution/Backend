@@ -35,6 +35,12 @@ class ProjectRepositoryImpl : ProjectRepository {
             .singleOrNull()?.toProject()
     }
 
+    override suspend fun listAll(): List<Project> = dbQuery {
+        ProjectsTable.selectAll()
+            .orderBy(ProjectsTable.name, SortOrder.ASC)
+            .map { it.toProject() }
+    }
+
     override suspend fun listByWorkspace(workspaceId: UUID): List<Project> = dbQuery {
         ProjectsTable.selectAll().where { ProjectsTable.workspaceId eq workspaceId }
             .map { it.toProject() }

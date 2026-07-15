@@ -308,6 +308,23 @@ async function request<T>(path: string, init: RequestInitWithMeta = {}): Promise
 }
 
 export const api = {
+  public: {
+    listProjects() {
+      return request<ApiProject[]>("/public/projects", { authenticated: false }).then((projects) =>
+        projects.map(mapProject),
+      );
+    },
+    listBuilds(projectId: string) {
+      return request<ApiBuild[]>(`/public/projects/${projectId}/builds`, { authenticated: false }).then((builds) =>
+        builds.map(mapBuild),
+      );
+    },
+    getDownloadUrl(buildId: string) {
+      return request<ApiDownloadUrlResponse>(`/public/builds/${buildId}/download-url`, {
+        authenticated: false,
+      }).then(mapDownloadUrlResponse);
+    },
+  },
   auth: {
     requestOtp(email: string) {
       return request<MessageResponse>("/auth/request-otp", {

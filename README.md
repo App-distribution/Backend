@@ -91,6 +91,7 @@ java -jar build/libs/*-all.jar
 
 | Group | Routes |
 |---|---|
+| Public downloads | `GET /public/projects`, `GET /public/projects/{id}/builds`, `GET /public/builds/{id}/download-url` |
 | Auth | `POST /auth/request-otp`, `POST /auth/verify-otp`, `POST /auth/refresh`, `POST /auth/logout` |
 | Workspaces | `GET /workspaces/me` |
 | Members | `GET /workspaces/{id}/members`, `PATCH /workspaces/{id}/members/{userId}`, `DELETE /workspaces/{id}/members/{userId}` |
