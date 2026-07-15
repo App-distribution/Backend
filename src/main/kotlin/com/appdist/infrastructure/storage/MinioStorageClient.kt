@@ -12,6 +12,11 @@ class MinioStorageClient(private val config: AppConfig.StorageConfig) : StorageC
         .credentials(config.accessKey, config.secretKey)
         .build()
 
+    private val publicClient = MinioClient.builder()
+        .endpoint(config.publicEndpoint)
+        .credentials(config.accessKey, config.secretKey)
+        .build()
+
     init {
         ensureBucketExists(config.bucket)
     }
@@ -34,7 +39,7 @@ class MinioStorageClient(private val config: AppConfig.StorageConfig) : StorageC
     }
 
     override fun generateDownloadUrl(key: String, ttlMinutes: Long): String {
-        val url = client.getPresignedObjectUrl(
+        return publicClient.getPresignedObjectUrl(
             GetPresignedObjectUrlArgs.builder()
                 .method(Method.GET)
                 .bucket(config.bucket)
@@ -42,9 +47,6 @@ class MinioStorageClient(private val config: AppConfig.StorageConfig) : StorageC
                 .expiry(ttlMinutes.toInt(), TimeUnit.MINUTES)
                 .build()
         )
-        return if (config.publicEndpoint != config.endpoint) {
-            url.replace(config.endpoint, config.publicEndpoint)
-        } else url
     }
 
     override fun delete(key: String) {
