@@ -4,10 +4,14 @@ import com.appdist.api.routes.*
 import com.appdist.config.AppConfig
 import com.appdist.domain.service.ApiKeyService
 import com.appdist.domain.service.AuthService
+import com.appdist.domain.service.BuildService
+import com.appdist.domain.service.NotificationService
 import com.appdist.infrastructure.database.repository.*
+import com.appdist.infrastructure.storage.StorageClient
 import com.appdist.plugins.*
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
+import io.mockk.mockk
 
 fun Application.testModule() {
     TestDatabase.init()
@@ -24,6 +28,7 @@ fun Application.testModule() {
     val workspaceRepo = WorkspaceRepositoryImpl()
     val auditRepo = AuditRepositoryImpl()
     val projectRepo = ProjectRepositoryImpl()
+    val buildRepo = BuildRepositoryImpl()
 
     val authService = AuthService(
         userRepo, workspaceRepo,
@@ -34,9 +39,31 @@ fun Application.testModule() {
     val apiKeyService = ApiKeyService(ApiKeyRepositoryImpl(), userRepo, auditRepo)
     configureAuth(jwtConfig, apiKeyService)
 
+    // MinioStorageClient проверяет бакет в init{} и требует живого Minio —
+    // в юнит-тестах (testModule используют 6 файлов, не только этот) его нет.
+    // Загрузка по ключу здесь всё равно не доходит до storageClient без
+    // фикстуры test.apk, поэтому relaxed-мок достаточно, чтобы роут
+    // существовал и не падал на старте приложения.
+    val storageConfig = AppConfig.StorageConfig(
+        endpoint = "http://localhost:9000",
+        publicEndpoint = "http://localhost:9000",
+        accessKey = "minioadmin",
+        secretKey = "minioadmin",
+        bucket = "test-bucket",
+    )
+    val buildService = BuildService(
+        buildRepository = buildRepo,
+        storageClient = mockk<StorageClient>(relaxed = true),
+        auditRepository = auditRepo,
+        storageConfig = storageConfig,
+        projectRepository = projectRepo,
+        notificationService = NotificationService(userRepo),
+    )
+
     routing {
         route("/api/v1") {
             authRoutes(authService)
+            uploadRoutes(buildService)
             projectRoutes(projectRepo, auditRepo, workspaceRepo)
             workspaceRoutes(workspaceRepo)
             userRoutes(userRepo)
