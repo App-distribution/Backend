@@ -58,9 +58,11 @@ class ApiKeyRepositoryImpl : ApiKeyRepository {
 
     // workspaceId в условии не для удобства, а для изоляции: без него админ
     // одного пространства мог бы отозвать чужой ключ, зная его id.
+    // revoked eq false в условии — иначе повторный revoke() уже отозванного
+    // ключа снова матчил бы строку и возвращал true вместо false.
     override suspend fun revoke(id: UUID, workspaceId: UUID): Boolean = dbQuery {
         ApiKeysTable.update({
-            (ApiKeysTable.id eq id) and (ApiKeysTable.workspaceId eq workspaceId)
+            (ApiKeysTable.id eq id) and (ApiKeysTable.workspaceId eq workspaceId) and (ApiKeysTable.revoked eq false)
         }) {
             it[revoked] = true
         } > 0
