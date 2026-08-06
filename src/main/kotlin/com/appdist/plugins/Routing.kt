@@ -2,6 +2,7 @@ package com.appdist.plugins
 
 import com.appdist.api.routes.*
 import com.appdist.config.AppConfig
+import com.appdist.domain.service.ApiKeyService
 import com.appdist.domain.service.AuthService
 import com.appdist.domain.service.BuildService
 import com.appdist.domain.service.NotificationService
@@ -18,6 +19,7 @@ fun Application.configureRouting(config: AppConfig) {
     val auditRepo = AuditRepositoryImpl()
     val buildRepo = BuildRepositoryImpl()
     val projectRepo = ProjectRepositoryImpl()
+    val apiKeyRepo = ApiKeyRepositoryImpl()
 
     val authService = AuthService(
         userRepository = userRepo,
@@ -41,6 +43,8 @@ fun Application.configureRouting(config: AppConfig) {
         notificationService = notificationService,
     )
 
+    val apiKeyService = ApiKeyService(apiKeyRepo, userRepo, auditRepo)
+
     routing {
         route("/api/v1") {
             publicRoutes(projectRepo, buildService)
@@ -50,6 +54,7 @@ fun Application.configureRouting(config: AppConfig) {
             projectRoutes(projectRepo, auditRepo, workspaceRepo)
             workspaceRoutes(workspaceRepo)
             userRoutes(userRepo)
+            apiKeyRoutes(apiKeyService)
         }
     }
 }

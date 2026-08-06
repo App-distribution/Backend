@@ -2,6 +2,7 @@ package com.appdist
 
 import com.appdist.api.routes.*
 import com.appdist.config.AppConfig
+import com.appdist.domain.service.ApiKeyService
 import com.appdist.domain.service.AuthService
 import com.appdist.infrastructure.database.repository.*
 import com.appdist.plugins.*
@@ -30,6 +31,7 @@ fun Application.testModule() {
         jwtConfig, otpConfig,
         auditRepository = auditRepo
     )
+    val apiKeyService = ApiKeyService(ApiKeyRepositoryImpl(), userRepo, auditRepo)
     configureAuth(jwtConfig)
 
     routing {
@@ -38,6 +40,7 @@ fun Application.testModule() {
             projectRoutes(projectRepo, auditRepo, workspaceRepo)
             workspaceRoutes(workspaceRepo)
             userRoutes(userRepo)
+            apiKeyRoutes(apiKeyService)
         }
     }
 }
