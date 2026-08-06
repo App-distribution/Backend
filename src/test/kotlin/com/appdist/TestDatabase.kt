@@ -12,7 +12,7 @@ object TestDatabase {
             SchemaUtils.create(
                 WorkspacesTable, UsersTable, ProjectsTable, BuildsTable,
                 OtpCodesTable, RefreshTokensTable, InstallEventsTable,
-                DownloadEventsTable, AuditLogsTable
+                DownloadEventsTable, AuditLogsTable, ApiKeysTable
             )
         }
     }
@@ -22,12 +22,12 @@ object TestDatabase {
             SchemaUtils.drop(
                 InstallEventsTable, DownloadEventsTable, AuditLogsTable,
                 RefreshTokensTable, OtpCodesTable, BuildsTable,
-                ProjectsTable, UsersTable, WorkspacesTable,
+                ProjectsTable, UsersTable, WorkspacesTable, ApiKeysTable,
             )
             SchemaUtils.create(
                 WorkspacesTable, UsersTable, ProjectsTable, BuildsTable,
                 OtpCodesTable, RefreshTokensTable, InstallEventsTable,
-                DownloadEventsTable, AuditLogsTable,
+                DownloadEventsTable, AuditLogsTable, ApiKeysTable,
             )
         }
     }

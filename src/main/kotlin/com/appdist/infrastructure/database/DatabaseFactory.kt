@@ -33,7 +33,7 @@ object DatabaseFactory {
             SchemaUtils.createMissingTablesAndColumns(
                 WorkspacesTable, UsersTable, ProjectsTable, BuildsTable,
                 OtpCodesTable, RefreshTokensTable, InstallEventsTable,
-                DownloadEventsTable, AuditLogsTable
+                DownloadEventsTable, AuditLogsTable, ApiKeysTable
             )
         }
     }
