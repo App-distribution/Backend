@@ -11,7 +11,7 @@ import com.appdist.infrastructure.storage.MinioStorageClient
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
 
-fun Application.configureRouting(config: AppConfig) {
+fun Application.configureRouting(config: AppConfig, apiKeyService: ApiKeyService) {
     val userRepo = UserRepositoryImpl()
     val workspaceRepo = WorkspaceRepositoryImpl()
     val otpRepo = OtpRepositoryImpl()
@@ -19,7 +19,6 @@ fun Application.configureRouting(config: AppConfig) {
     val auditRepo = AuditRepositoryImpl()
     val buildRepo = BuildRepositoryImpl()
     val projectRepo = ProjectRepositoryImpl()
-    val apiKeyRepo = ApiKeyRepositoryImpl()
 
     val authService = AuthService(
         userRepository = userRepo,
@@ -42,8 +41,6 @@ fun Application.configureRouting(config: AppConfig) {
         projectRepository = projectRepo,
         notificationService = notificationService,
     )
-
-    val apiKeyService = ApiKeyService(apiKeyRepo, userRepo, auditRepo)
 
     routing {
         route("/api/v1") {

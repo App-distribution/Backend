@@ -5,6 +5,7 @@ import com.appdist.domain.model.UserRole
 import com.appdist.domain.repository.AuditRepository
 import com.appdist.domain.repository.ProjectRepository
 import com.appdist.domain.repository.WorkspaceRepository
+import com.appdist.plugins.API_KEY_AUTH
 import com.appdist.plugins.AuthPrincipal
 import com.appdist.plugins.JWT_AUTH
 import com.appdist.plugins.requireRole
@@ -25,8 +26,9 @@ fun Route.projectRoutes(
     auditRepo: AuditRepository,
     workspaceRepo: WorkspaceRepository,
 ) {
-    authenticate(JWT_AUTH) {
-
+    // Списком проектов пользуется и заливка по ключу: ей нужно проверить,
+    // что projectId существует.
+    authenticate(JWT_AUTH, API_KEY_AUTH) {
         // Android client: workspaceId from JWT (no path param)
         get("/projects") {
             val principal = call.principal<AuthPrincipal>()!!
@@ -44,7 +46,9 @@ fun Route.projectRoutes(
             val projects = projectRepo.listByWorkspace(workspaceId)
             call.respond(projects.map { it.toDto() })
         }
+    }
 
+    authenticate(JWT_AUTH) {
         route("/workspaces/{workspaceId}/projects") {
             get {
                 val workspaceId = try {

@@ -3,6 +3,7 @@ package com.appdist.plugins
 import com.appdist.api.dto.ErrorResponse
 import com.appdist.config.AppConfig
 import com.appdist.domain.model.UserRole
+import com.appdist.domain.service.ApiKeyService
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.auth.*
@@ -13,6 +14,7 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 
 const val JWT_AUTH = "jwt-auth"
+const val API_KEY_AUTH = "api-key-auth"
 
 data class AuthPrincipal(
     val userId: String,
@@ -21,7 +23,10 @@ data class AuthPrincipal(
     val workspaceId: String,
 ) : Principal
 
-fun Application.configureAuth(jwtConfig: AppConfig.JwtConfig) {
+fun Application.configureAuth(
+    jwtConfig: AppConfig.JwtConfig,
+    apiKeyService: ApiKeyService? = null,
+) {
     install(Authentication) {
         jwt(JWT_AUTH) {
             val algorithm = Algorithm.HMAC256(jwtConfig.secret)
@@ -47,6 +52,22 @@ fun Application.configureAuth(jwtConfig: AppConfig.JwtConfig) {
                 call.respond(
                     HttpStatusCode.Unauthorized,
                     ErrorResponse("UNAUTHORIZED", "Token is not valid or expired")
+                )
+            }
+        }
+
+        // Провайдер регистрируется всегда: без сервиса он просто никого не
+        // пропускает, зато роуты с authenticate(JWT_AUTH, API_KEY_AUTH)
+        // не падают на старте из-за отсутствующего провайдера.
+        bearer(API_KEY_AUTH) {
+            authenticate { credential ->
+                val service = apiKeyService ?: return@authenticate null
+                val identity = service.authenticate(credential.token) ?: return@authenticate null
+                AuthPrincipal(
+                    userId = identity.userId.toString(),
+                    email = identity.email,
+                    role = UserRole.UPLOADER,
+                    workspaceId = identity.workspaceId.toString(),
                 )
             }
         }

@@ -7,6 +7,7 @@ import com.appdist.domain.model.ReleaseChannel
 import com.appdist.domain.model.UserRole
 import com.appdist.domain.service.BuildService
 import com.appdist.domain.service.UploadRequest
+import com.appdist.plugins.API_KEY_AUTH
 import com.appdist.plugins.AuthPrincipal
 import com.appdist.plugins.JWT_AUTH
 import com.appdist.plugins.requireRole
@@ -21,7 +22,7 @@ import java.io.File
 import java.util.UUID
 
 fun Route.uploadRoutes(buildService: BuildService) {
-    authenticate(JWT_AUTH) {
+    authenticate(JWT_AUTH, API_KEY_AUTH) {
         post("/builds/upload") {
             call.requireRole(UserRole.ADMIN, UserRole.UPLOADER)
             val principal = call.principal<AuthPrincipal>()!!

@@ -1,7 +1,11 @@
 package com.appdist
 
 import com.appdist.config.AppConfig
+import com.appdist.domain.service.ApiKeyService
 import com.appdist.infrastructure.database.DatabaseFactory
+import com.appdist.infrastructure.database.repository.ApiKeyRepositoryImpl
+import com.appdist.infrastructure.database.repository.AuditRepositoryImpl
+import com.appdist.infrastructure.database.repository.UserRepositoryImpl
 import com.appdist.plugins.*
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
@@ -27,8 +31,13 @@ fun Application.module() {
     configureCallLogging()
     configureCORS()
     configureStatusPages()
-    configureAuth(config.jwt)
-    configureRouting(config)
+    val apiKeyService = ApiKeyService(
+        ApiKeyRepositoryImpl(),
+        UserRepositoryImpl(),
+        AuditRepositoryImpl(),
+    )
+    configureAuth(config.jwt, apiKeyService)
+    configureRouting(config, apiKeyService)
 }
 
 fun initFirebase(credentialsPath: String?) {

@@ -32,7 +32,7 @@ fun Application.testModule() {
         auditRepository = auditRepo
     )
     val apiKeyService = ApiKeyService(ApiKeyRepositoryImpl(), userRepo, auditRepo)
-    configureAuth(jwtConfig)
+    configureAuth(jwtConfig, apiKeyService)
 
     routing {
         route("/api/v1") {
