@@ -92,6 +92,38 @@ class ApiKeyRoutesTest {
     }
 
     @Test
+    fun `issue rejects name longer than 128 characters`() = testApplication {
+        application { testModule() }
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = login(client, "admin-toolong@example.com")
+
+        // ApiKeysTable.name — varchar(128): без проверки в роуте вставка в
+        // БД падает и наружу уходит 500 вместо внятного 400.
+        val response = client.post("/api/v1/api-keys") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(CreateApiKeyRequest("a".repeat(129)))
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        assertEquals("INVALID_FIELD", body["code"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `issue accepts name at exactly 128 characters`() = testApplication {
+        application { testModule() }
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = login(client, "admin-exactlen@example.com")
+
+        val response = client.post("/api/v1/api-keys") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(CreateApiKeyRequest("a".repeat(128)))
+        }
+        assertEquals(HttpStatusCode.Created, response.status)
+    }
+
+    @Test
     fun `issue without token returns 401`() = testApplication {
         application { testModule() }
         val client = createClient { install(ContentNegotiation) { json() } }

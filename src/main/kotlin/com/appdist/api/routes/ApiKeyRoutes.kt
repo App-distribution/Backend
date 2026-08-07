@@ -14,6 +14,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.util.UUID
 
+// Совпадает с varchar("name", 128) в ApiKeysTable.kt: имя длиннее этого
+// роняет вставку в БД и без проверки здесь превращается в 500 вместо
+// внятного 400.
+private const val MAX_NAME_LENGTH = 128
+
 fun Route.apiKeyRoutes(apiKeyService: ApiKeyService) {
     // Ключами управляет человек, вошедший по коду: под API_KEY_AUTH эти
     // роуты не подключены намеренно, иначе ключ мог бы выпустить себе смену.
@@ -27,6 +32,13 @@ fun Route.apiKeyRoutes(apiKeyService: ApiKeyService) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         ErrorResponse("INVALID_FIELD", "name must not be blank")
+                    )
+                    return@post
+                }
+                if (req.name.length > MAX_NAME_LENGTH) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse("INVALID_FIELD", "name must be at most $MAX_NAME_LENGTH characters")
                     )
                     return@post
                 }
