@@ -113,8 +113,11 @@ curl -s -X POST "$BASE/api-keys" \
 ```
 
 The response contains the full key exactly once — store it right away, it is
-kept only as a SHA-256 hash and cannot be recovered.
+kept only as a SHA-256 hash and cannot be recovered. Listing keys
+(`GET /api-keys`) never returns the key value itself, only metadata.
 
 The key works on `POST /builds/upload` and `GET /projects` and nowhere else:
 the provider is wired only to those two routes. Revoke with
-`DELETE /api-keys/{id}`; the key stops working immediately.
+`DELETE /api-keys/{id}`; the key stops working immediately. The reverse also
+holds: the key cannot be used to issue or revoke keys — managing keys stays
+behind the admin JWT from OTP login, never the key itself.
