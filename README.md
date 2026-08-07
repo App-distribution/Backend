@@ -98,3 +98,23 @@ java -jar build/libs/*-all.jar
 | Apps | `GET /apps`, `POST /apps`, `GET /apps/{id}`, `PATCH /apps/{id}`, `DELETE /apps/{id}` |
 | Releases | `GET /apps/{id}/releases`, `POST /apps/{id}/releases`, `GET /apps/{id}/releases/{rid}`, `DELETE /apps/{id}/releases/{rid}`, `GET /apps/{id}/releases/{rid}/download` |
 | Invitations | `POST /invitations`, `GET /invitations/{token}`, `POST /invitations/{token}/accept` |
+| API keys | `POST /api-keys`, `GET /api-keys`, `DELETE /api-keys/{id}` |
+
+## Machine access (CI)
+
+Uploading builds from CI does not require an OTP. An admin issues an API key
+once:
+
+```bash
+curl -s -X POST "$BASE/api-keys" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "CI stage"}'
+```
+
+The response contains the full key exactly once — store it right away, it is
+kept only as a SHA-256 hash and cannot be recovered.
+
+The key works on `POST /builds/upload` and `GET /projects` and nowhere else:
+the provider is wired only to those two routes. Revoke with
+`DELETE /api-keys/{id}`; the key stops working immediately.
