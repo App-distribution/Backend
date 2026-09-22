@@ -3,7 +3,6 @@ version: '3.9'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: appdist-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-appdist}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
@@ -21,8 +20,7 @@ services:
       - default
 
   minio:
-    image: minio/minio:latest
-    container_name: appdist-minio
+    image: quay.io/minio/minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
