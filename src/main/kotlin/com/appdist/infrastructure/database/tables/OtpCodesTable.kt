@@ -8,5 +8,6 @@ object OtpCodesTable : Table("otp_codes") {
     val code = varchar("code", 10)
     val expiresAt = timestamp("expires_at")
     val used = bool("used")
+    val failedAttempts = integer("failed_attempts").default(0)
     override val primaryKey = PrimaryKey(email)
 }

@@ -17,6 +17,9 @@ import java.util.UUID
 
 private val log = KotlinLogging.logger {}
 
+// Шестизначный код за время жизни иначе можно перебрать запросами.
+private const val MAX_FAILED_OTP_ATTEMPTS = 5
+
 val FREE_EMAIL_DOMAINS = setOf(
     "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.uk", "yahoo.co.in",
     "hotmail.com", "hotmail.co.uk", "outlook.com", "live.com", "msn.com",
@@ -66,8 +69,10 @@ open class AuthService(
 
     suspend fun verifyOtp(email: String, code: String): AuthTokens {
         // 1. Verify OTP
-        otpRepository.findValid(email, code)
-            ?: error("Invalid or expired OTP")
+        if (otpRepository.findValid(email, code) == null) {
+            otpRepository.registerFailedAttempt(email, MAX_FAILED_OTP_ATTEMPTS)
+            error("Неверный или просроченный код")
+        }
         otpRepository.markUsed(email, code)
 
         // 2. Determine workspace slug from email domain

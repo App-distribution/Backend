@@ -8,6 +8,7 @@ import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import kotlin.time.Duration.Companion.minutes
 
@@ -48,6 +49,17 @@ class OtpRepositoryImpl : OtpRepository {
 
     override suspend fun markUsed(email: String, code: String) = dbQuery {
         OtpCodesTable.update({ (OtpCodesTable.email eq email) and (OtpCodesTable.code eq code) }) {
+            it[used] = true
+        }
+        Unit
+    }
+
+    override suspend fun registerFailedAttempt(email: String, maxAttempts: Int) = dbQuery {
+        val active = (OtpCodesTable.email eq email) and (OtpCodesTable.used eq false)
+        OtpCodesTable.update({ active }) {
+            it.update(failedAttempts, failedAttempts + 1)
+        }
+        OtpCodesTable.update({ active and (OtpCodesTable.failedAttempts greaterEq maxAttempts) }) {
             it[used] = true
         }
         Unit

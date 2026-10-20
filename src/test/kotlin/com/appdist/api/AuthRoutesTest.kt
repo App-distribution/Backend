@@ -82,4 +82,24 @@ class AuthRoutesTest {
         assertTrue("EMAIL_SEND_FAILED" in body, body)
         assertTrue("Не удалось отправить код" in body, body)
     }
+
+    @Test
+    fun `second code request within a minute returns 429 with Retry-After`() = testApplication {
+        application { testModule() }
+        val client = createClient { install(ContentNegotiation) { json() } }
+        suspend fun ask() = client.post("/api/v1/auth/request-otp") {
+            contentType(ContentType.Application.Json)
+            setBody(RequestOtpRequest("hasty@example.com"))
+        }
+
+        assertEquals(HttpStatusCode.OK, ask().status)
+        val second = ask()
+
+        assertEquals(HttpStatusCode.TooManyRequests, second.status)
+        val retryAfter = second.headers[HttpHeaders.RetryAfter]?.toInt()
+        assertTrue(retryAfter != null && retryAfter in 1..60, "Retry-After=$retryAfter")
+        val body = second.bodyAsText()
+        assertTrue("TOO_MANY_REQUESTS" in body, body)
+        assertTrue("Повторите через" in body, body)
+    }
 }

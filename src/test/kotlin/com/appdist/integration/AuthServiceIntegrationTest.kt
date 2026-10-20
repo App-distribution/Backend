@@ -105,7 +105,7 @@ class AuthServiceIntegrationTest {
             authService.verifyOtp(email, "000000")
         }
         assertTrue(
-            exception.message?.contains("Invalid") == true || exception.message?.contains("expired") == true,
+            exception.message?.contains("Неверный или просроченный код") == true,
             "Expected invalid/expired OTP error, got: ${exception.message}"
         )
     }

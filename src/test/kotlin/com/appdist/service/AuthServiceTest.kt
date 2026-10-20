@@ -52,6 +52,29 @@ class AuthServiceTest {
         emailSender = sender,
     )
 
+    // Шестизначный код за 5 минут жизни иначе можно перебрать.
+    @Test
+    fun `code is burned after five wrong attempts`() = runTest {
+        val email = "victim@example.com"
+        val otp = authService.requestOtp(email)
+        val wrong = if (otp == "000000") "111111" else "000000"
+
+        repeat(5) { assertFailsWith<IllegalStateException> { authService.verifyOtp(email, wrong) } }
+
+        assertFailsWith<IllegalStateException> { authService.verifyOtp(email, otp) }
+    }
+
+    @Test
+    fun `fewer than five wrong attempts keep the code usable`() = runTest {
+        val email = "typo@example.com"
+        val otp = authService.requestOtp(email)
+        val wrong = if (otp == "000000") "111111" else "000000"
+
+        repeat(4) { assertFailsWith<IllegalStateException> { authService.verifyOtp(email, wrong) } }
+
+        assertNotNull(authService.verifyOtp(email, otp).accessToken)
+    }
+
     @Test
     fun `requestOtp emails the code to the requested address`() = runTest {
         val otp = authService.requestOtp("bob@example.com")
@@ -123,7 +146,7 @@ class AuthServiceTest {
             authService.verifyOtp("user@test.com", "000000")
             assert(false) { "should have thrown" }
         } catch (e: Exception) {
-            assert(e.message?.contains("Invalid") == true || e.message?.contains("expired") == true)
+            assert(e.message?.contains("Неверный или просроченный код") == true)
         }
     }
 
