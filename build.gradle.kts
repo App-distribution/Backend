@@ -57,6 +57,9 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:${property("logback_version")}")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
 
+    // Email (OTP codes)
+    implementation("org.eclipse.angus:angus-mail:2.0.3")
+
     // Test
     testImplementation("io.ktor:ktor-server-test-host-jvm")
     testImplementation("io.ktor:ktor-client-content-negotiation-jvm")

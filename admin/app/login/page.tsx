@@ -180,7 +180,7 @@ export default function LoginPage() {
               >
                 У меня уже есть код
               </Button>
-              <p className="text-center text-xs text-[var(--text-muted)]">Код действует 10 минут. Пароль не нужен.</p>
+              <p className="text-center text-xs text-[var(--text-muted)]">Код действует 5 минут. Пароль не нужен.</p>
             </form>
           ) : (
             <form className="mt-10 space-y-4" onSubmit={submitOtp}>

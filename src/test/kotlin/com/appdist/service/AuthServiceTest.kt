@@ -4,15 +4,20 @@ import com.appdist.TestDatabase
 import com.appdist.config.AppConfig
 import com.appdist.domain.model.UserRole
 import com.appdist.domain.service.AuthService
+import com.appdist.domain.service.EmailDeliveryException
+import com.appdist.fixtures.RecordingEmailSender
 import com.appdist.infrastructure.database.repository.*
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class AuthServiceTest {
     private lateinit var authService: AuthService
+    private val emailSender = RecordingEmailSender()
     private val jwtConfig = AppConfig.JwtConfig(
         secret = "test-secret-key-256-bit-minimum-length-ok",
         issuer = "appdist",
@@ -33,7 +38,35 @@ class AuthServiceTest {
             refreshTokenRepository = RefreshTokenRepositoryImpl(),
             jwtConfig = jwtConfig,
             otpConfig = otpConfig,
+            emailSender = emailSender,
         )
+    }
+
+    private fun serviceWith(sender: RecordingEmailSender) = AuthService(
+        userRepository = UserRepositoryImpl(),
+        workspaceRepository = WorkspaceRepositoryImpl(),
+        otpRepository = OtpRepositoryImpl(),
+        refreshTokenRepository = RefreshTokenRepositoryImpl(),
+        jwtConfig = jwtConfig,
+        otpConfig = otpConfig,
+        emailSender = sender,
+    )
+
+    @Test
+    fun `requestOtp emails the code to the requested address`() = runTest {
+        val otp = authService.requestOtp("bob@example.com")
+
+        val message = emailSender.sent.single()
+        assertEquals("bob@example.com", message.to)
+        assertTrue(otp in message.text, "код должен быть в тексте письма")
+        assertTrue("5 минут" in message.text, "срок жизни берётся из конфига")
+    }
+
+    @Test
+    fun `requestOtp reports delivery failure instead of pretending the code was sent`() = runTest {
+        val failing = serviceWith(RecordingEmailSender(failWith = RuntimeException("smtp down")))
+
+        assertFailsWith<EmailDeliveryException> { failing.requestOtp("bob@example.com") }
     }
 
     @Test

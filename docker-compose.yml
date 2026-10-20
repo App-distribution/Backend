@@ -52,6 +52,11 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       JWT_ISSUER: ${JWT_ISSUER:-app-distribution}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-app-distribution-clients}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
     ports:
       - 8080
     networks:

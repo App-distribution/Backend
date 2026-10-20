@@ -5,6 +5,8 @@ import com.appdist.config.AppConfig
 import com.appdist.domain.service.ApiKeyService
 import com.appdist.domain.service.AuthService
 import com.appdist.domain.service.BuildService
+import com.appdist.domain.service.EmailSender
+import com.appdist.infrastructure.email.LogEmailSender
 import com.appdist.domain.service.NotificationService
 import com.appdist.infrastructure.database.repository.*
 import com.appdist.infrastructure.storage.StorageClient
@@ -13,7 +15,9 @@ import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import io.mockk.mockk
 
-fun Application.testModule() {
+fun Application.testModule(
+    emailSender: EmailSender = LogEmailSender(),
+) {
     TestDatabase.init()
     configureSerialization()
     configureStatusPages()
@@ -34,7 +38,8 @@ fun Application.testModule() {
         userRepo, workspaceRepo,
         OtpRepositoryImpl(), RefreshTokenRepositoryImpl(),
         jwtConfig, otpConfig,
-        auditRepository = auditRepo
+        auditRepository = auditRepo,
+        emailSender = emailSender,
     )
     val apiKeyService = ApiKeyService(ApiKeyRepositoryImpl(), userRepo, auditRepo)
     configureAuth(jwtConfig, apiKeyService)

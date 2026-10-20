@@ -8,6 +8,7 @@ data class AppConfig(
     val jwt: JwtConfig,
     val otp: OtpConfig,
     val firebase: FirebaseConfig,
+    val smtp: SmtpConfig?,
 ) {
     data class DatabaseConfig(
         val url: String,
@@ -36,6 +37,16 @@ data class AppConfig(
     data class FirebaseConfig(
         val credentialsPath: String?,
     )
+    /** null — SMTP не настроен, коды входа пишутся в лог (только для разработки). */
+    data class SmtpConfig(
+        val host: String,
+        val port: Int,
+        val username: String,
+        val password: String,
+        val from: String,
+    ) {
+        override fun toString() = "SmtpConfig(host=$host, port=$port, username=$username, from=$from)"
+    }
 
     companion object {
         fun from(config: ApplicationConfig): AppConfig {
@@ -68,9 +79,25 @@ data class AppConfig(
                 firebase = FirebaseConfig(
                     credentialsPath = config.propertyOrNull("firebase.credentialsPath")?.getString(),
                 ),
+                smtp = smtpFrom(config),
             )
             appConfig.validate()
             return appConfig
+        }
+
+        private fun smtpFrom(config: ApplicationConfig): SmtpConfig? {
+            fun opt(key: String) = config.propertyOrNull("smtp.$key")?.getString()?.takeIf { it.isNotBlank() }
+            val host = opt("host") ?: return null
+            // Наполовину заданный SMTP — почти наверняка опечатка в окружении;
+            // лучше упасть на старте, чем молча писать коды в лог на проде.
+            fun req(key: String, env: String) = requireNotNull(opt(key)) { "smtp.$key must be set via $env when SMTP_HOST is set" }
+            return SmtpConfig(
+                host = host,
+                port = opt("port")?.toInt() ?: 465,
+                username = req("username", "SMTP_USERNAME"),
+                password = req("password", "SMTP_PASSWORD"),
+                from = opt("from") ?: req("username", "SMTP_USERNAME"),
+            )
         }
 
         private fun AppConfig.validate() {

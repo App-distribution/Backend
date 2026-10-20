@@ -7,9 +7,14 @@ import com.appdist.domain.service.AuthService
 import com.appdist.domain.service.BuildService
 import com.appdist.domain.service.NotificationService
 import com.appdist.infrastructure.database.repository.*
+import com.appdist.infrastructure.email.LogEmailSender
+import com.appdist.infrastructure.email.SmtpEmailSender
 import com.appdist.infrastructure.storage.MinioStorageClient
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
+
+private val logger = KotlinLogging.logger {}
 
 fun Application.configureRouting(config: AppConfig, apiKeyService: ApiKeyService) {
     val userRepo = UserRepositoryImpl()
@@ -20,6 +25,10 @@ fun Application.configureRouting(config: AppConfig, apiKeyService: ApiKeyService
     val buildRepo = BuildRepositoryImpl()
     val projectRepo = ProjectRepositoryImpl()
 
+    val emailSender = config.smtp
+        ?.let { logger.info { "OTP emails via SMTP ${it.host}:${it.port} as ${it.from}" }; SmtpEmailSender(it) }
+        ?: LogEmailSender().also { logger.warn { "SMTP_HOST not set — OTP codes go to the log, do not use in production" } }
+
     val authService = AuthService(
         userRepository = userRepo,
         workspaceRepository = workspaceRepo,
@@ -28,6 +37,7 @@ fun Application.configureRouting(config: AppConfig, apiKeyService: ApiKeyService
         jwtConfig = config.jwt,
         otpConfig = config.otp,
         auditRepository = auditRepo,
+        emailSender = emailSender,
     )
 
     val storageClient = MinioStorageClient(config.storage)

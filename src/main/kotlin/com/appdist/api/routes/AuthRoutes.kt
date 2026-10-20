@@ -2,6 +2,7 @@ package com.appdist.api.routes
 
 import com.appdist.api.dto.*
 import com.appdist.domain.service.AuthService
+import com.appdist.domain.service.EmailDeliveryException
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -16,7 +17,15 @@ fun Route.authRoutes(authService: AuthService) {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_EMAIL", "Valid email required"))
                 return@post
             }
-            authService.requestOtp(req.email)
+            try {
+                authService.requestOtp(req.email)
+            } catch (_: EmailDeliveryException) {
+                call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    ErrorResponse("EMAIL_SEND_FAILED", "Не удалось отправить код на почту. Попробуйте позже."),
+                )
+                return@post
+            }
             call.respond(HttpStatusCode.OK, MessageResponse("OTP sent to ${req.email}"))
         }
 

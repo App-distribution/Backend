@@ -3,6 +3,7 @@ package com.appdist.domain.service
 import com.appdist.config.AppConfig
 import com.appdist.domain.model.UserRole
 import com.appdist.domain.repository.*
+import com.appdist.infrastructure.email.LogEmailSender
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -33,14 +34,34 @@ open class AuthService(
     private val jwtConfig: AppConfig.JwtConfig,
     private val otpConfig: AppConfig.OtpConfig,
     private val auditRepository: AuditRepository? = null,
+    private val emailSender: EmailSender = LogEmailSender(),
 ) : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatchers.IO) {
 
     open suspend fun requestOtp(email: String): String {
         val code = generateOtp(otpConfig.length)
         otpRepository.create(email, code, otpConfig.ttlMinutes)
-        log.info { "OTP for $email: $code" }
-        println("\n┌─────────────────────────────┐\n│  OTP for $email\n│  Code: $code\n└─────────────────────────────┘")
+        try {
+            emailSender.send(otpEmail(email, code))
+        } catch (e: Exception) {
+            log.error(e) { "Failed to send OTP email to $email" }
+            throw EmailDeliveryException(e)
+        }
         return code
+    }
+
+    private fun otpEmail(email: String, code: String): EmailMessage {
+        val ttl = "${otpConfig.ttlMinutes} минут"
+        return EmailMessage(
+            to = email,
+            subject = "Код входа в AppDist: $code",
+            text = "Ваш код входа в AppDist: $code\n\nКод действует $ttl. " +
+                "Если вы не запрашивали вход, просто проигнорируйте это письмо.",
+            html = """
+                <p>Ваш код входа в AppDist:</p>
+                <p style="font-size:28px;font-weight:600;letter-spacing:4px;font-family:monospace">$code</p>
+                <p>Код действует $ttl. Если вы не запрашивали вход, просто проигнорируйте это письмо.</p>
+            """.trimIndent(),
+        )
     }
 
     suspend fun verifyOtp(email: String, code: String): AuthTokens {

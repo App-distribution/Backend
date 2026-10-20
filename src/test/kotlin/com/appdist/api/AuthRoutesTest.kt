@@ -1,16 +1,19 @@
 package com.appdist.api
 
+import com.appdist.fixtures.RecordingEmailSender
 import com.appdist.testModule
 import com.appdist.api.dto.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.testing.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class AuthRoutesTest {
     @Test
@@ -61,5 +64,22 @@ class AuthRoutesTest {
             setBody(VerifyOtpRequest("test@verify.com", "000000"))
         }
         assertEquals(HttpStatusCode.Unauthorized, invalidResponse.status)
+    }
+
+    // Админка показывает message из ответа как есть, поэтому текст — по-русски.
+    @Test
+    fun `request OTP returns 503 when the email cannot be sent`() = testApplication {
+        application { testModule(emailSender = RecordingEmailSender(failWith = RuntimeException("smtp down"))) }
+        val client = createClient { install(ContentNegotiation) { json() } }
+
+        val response = client.post("/api/v1/auth/request-otp") {
+            contentType(ContentType.Application.Json)
+            setBody(RequestOtpRequest("user@example.com"))
+        }
+
+        assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+        val body = response.bodyAsText()
+        assertTrue("EMAIL_SEND_FAILED" in body, body)
+        assertTrue("Не удалось отправить код" in body, body)
     }
 }

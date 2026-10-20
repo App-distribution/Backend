@@ -78,6 +78,11 @@ java -jar build/libs/*-all.jar
 | `JWT_ISSUER` | JWT issuer claim | `appdist` |
 | `JWT_AUDIENCE` | JWT audience claim | `appdist-client` |
 | `FIREBASE_CREDENTIALS_PATH` | Path to Firebase service-account JSON | unset, push notifications disabled |
+| `SMTP_HOST` | SMTP server for login codes, e.g. `smtp.mail.ru` | unset, codes are written to the log (dev only) |
+| `SMTP_PORT` | SMTP port, SSL from the first byte | `465` |
+| `SMTP_USERNAME` | Mailbox login | required when `SMTP_HOST` is set |
+| `SMTP_PASSWORD` | App password for the mailbox (not the account password) | required when `SMTP_HOST` is set |
+| `SMTP_FROM` | Sender, e.g. `AppDist <appdist.noreply@mail.ru>`; the address must match the login | `SMTP_USERNAME` |
 | `PORT` | HTTP port | `8080` |
 
 ## Security Notes
