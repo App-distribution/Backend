@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   isThemePreference,
   THEME_STORAGE_KEY,
@@ -25,8 +25,12 @@ function getStoredTheme(): ThemePreference {
     return "system";
   }
 
-  const value = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return isThemePreference(value) ? value : "system";
+  try {
+    const value = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return isThemePreference(value) ? value : "system";
+  } catch {
+    return "system";
+  }
 }
 
 function resolveTheme(theme: ThemePreference): ResolvedTheme {
@@ -52,14 +56,22 @@ function applyTheme(theme: ThemePreference): ResolvedTheme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<ThemePreference>(() => getStoredTheme());
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
-    typeof window === "undefined" ? "light" : resolveTheme(getStoredTheme()),
-  );
+  // Keep the server render and the first client render identical. The inline
+  // theme script already applies the correct colors before paint; this state is
+  // synchronized with storage and matchMedia immediately after hydration.
+  const [theme, setThemeState] = useState<ThemePreference>("system");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
 
   useEffect(() => {
-    setResolvedTheme(applyTheme(theme));
-  }, [theme]);
+    const initialTheme = getStoredTheme();
+    setThemeState(initialTheme);
+    setResolvedTheme(applyTheme(initialTheme));
+  }, []);
+
+  const setTheme = useCallback((nextTheme: ThemePreference) => {
+    setThemeState(nextTheme);
+    setResolvedTheme(applyTheme(nextTheme));
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -87,7 +99,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  }, [setTheme]);
 
   const value = useMemo(
     () => ({

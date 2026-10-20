@@ -40,9 +40,9 @@ export default function ProjectsPage() {
       setName("");
       setPackageName("");
       setShowCreate(false);
-      setMessage("Project created");
+      setMessage("Проект создан");
     } catch (error) {
-      setMessage(error instanceof ApiError ? error.message : "Failed to create project");
+      setMessage(error instanceof ApiError ? error.message : "Не удалось создать проект");
     }
   };
 
@@ -50,12 +50,12 @@ export default function ProjectsPage() {
     <div className="space-y-4">
       <PageHeader
         eyebrow="Projects"
-        title="Project catalog"
-        description="Projects are the operational boundary for uploads, channel checks and release history. Cards emphasize quick scanning over raw CRUD."
+        title="Проекты"
+        description="Приложения, их пакеты, последние сборки и быстрый переход к публикации APK."
         actions={
           canCreate ? (
             <Button variant={showCreate ? "secondary" : "primary"} onClick={() => setShowCreate((current) => !current)}>
-              {showCreate ? "Close" : "Create project"}
+              {showCreate ? "Закрыть" : "Создать проект"}
             </Button>
           ) : null
         }
@@ -65,19 +65,20 @@ export default function ProjectsPage() {
         <Card>
           <CardContent className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <div>
-              <Label>Project name</Label>
-              <Input placeholder="Android QA App" value={name} onChange={(event) => setName(event.target.value)} />
+              <Label htmlFor="project-name">Название проекта</Label>
+              <Input id="project-name" placeholder="Android QA App" value={name} onChange={(event) => setName(event.target.value)} />
             </div>
             <div>
-              <Label>Package name</Label>
+              <Label htmlFor="project-package">Имя пакета</Label>
               <Input
+                id="project-package"
                 placeholder="com.company.app.qa"
                 value={packageName}
                 onChange={(event) => setPackageName(event.target.value)}
               />
             </div>
             <Button disabled={!name || !packageName || createProject.isPending} onClick={() => void submit()}>
-              Save project
+              Сохранить проект
             </Button>
             {message ? <p className="text-sm text-[var(--text-muted)] lg:col-span-3">{message}</p> : null}
           </CardContent>
@@ -92,9 +93,9 @@ export default function ProjectsPage() {
         </section>
       ) : (
         <EmptyState
-          title="No projects yet"
-          description="Create the first project to unlock APK uploads and channel-based build history."
-          action={canCreate ? <Button onClick={() => setShowCreate(true)}>Create first project</Button> : undefined}
+          title="Проектов пока нет"
+          description="Создайте первый проект, чтобы загружать APK и вести историю сборок по каналам."
+          action={canCreate ? <Button onClick={() => setShowCreate(true)}>Создать первый проект</Button> : undefined}
         />
       )}
     </div>

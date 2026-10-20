@@ -19,7 +19,7 @@ const columnHelper = createColumnHelper<Build>();
 
 const columns = [
   columnHelper.accessor("versionName", {
-    header: "Version",
+    header: "Версия",
     cell: (info) => (
       <div>
         <p className="font-semibold">{info.getValue()}</p>
@@ -28,15 +28,15 @@ const columns = [
     ),
   }),
   columnHelper.accessor("channel", {
-    header: "Channel",
+    header: "Канал",
     cell: (info) => <ChannelBadge channel={info.getValue()} />,
   }),
   columnHelper.accessor("environment", {
-    header: "Environment",
+    header: "Окружение",
     cell: (info) => <EnvironmentBadge environment={info.getValue()} />,
   }),
   columnHelper.accessor("uploadDate", {
-    header: "Uploaded",
+    header: "Загружена",
     cell: (info) => formatDateTime(info.getValue()),
   }),
 ];
@@ -72,22 +72,22 @@ export default function ProjectDetailPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        eyebrow="Project detail"
-        title={projectQuery.data?.name ?? "Project"}
-        description={projectQuery.data?.packageName ?? "Loading package metadata"}
+        eyebrow="Project"
+        title={projectQuery.data?.name ?? "Проект"}
+        description={projectQuery.data?.packageName ?? "Загружаем данные проекта"}
         actions={
           <>
-            <Button onClick={() => router.push(`/upload?projectId=${projectId}`)}>Upload APK</Button>
+            <Button onClick={() => router.push(`/upload?projectId=${projectId}`)}>Загрузить APK</Button>
             {canDeleteProject ? (
               <Button
                 variant="danger"
                 onClick={async () => {
-                  if (!window.confirm("Delete this project and its metadata?")) return;
+                  if (!window.confirm("Удалить проект и все его метаданные?")) return;
                   await deleteProject.mutateAsync(projectId);
                   router.replace("/projects");
                 }}
               >
-                Delete project
+                Удалить проект
               </Button>
             ) : null}
           </>
@@ -96,35 +96,35 @@ export default function ProjectDetailPage() {
 
       <section className="grid gap-4 xl:grid-cols-4">
         <StatCard
-          label="Builds"
+          label="Сборки"
           value={String(buildsQuery.data?.length ?? 0)}
-          hint="Full project delivery history currently loaded"
+          hint="Загруженная история публикаций проекта"
         />
         <StatCard
-          label="Latest channels"
+          label="Активные каналы"
           value={String(latestByChannel.length)}
-          hint="Channels with current latest build marker"
+          hint="Каналы с актуальной сборкой"
         />
         <StatCard
-          label="Mandatory / deprecated"
+          label="Особые статусы"
           value={String((buildsQuery.data ?? []).filter((build) => build.status !== "ACTIVE").length)}
-          hint="Builds with non-active status"
+          hint="Обязательные или устаревшие сборки"
         />
         <StatCard
-          label="Created"
+          label="Создан"
           value={projectQuery.data ? formatDateTime(projectQuery.data.createdAt) : "—"}
-          hint="Project creation timestamp from backend"
+          hint="Дата создания проекта"
         />
       </section>
 
       <Card>
-        <CardHeader title="Channel strip" description="Fast scan of the latest build represented in every release channel." />
+        <CardHeader title="Каналы публикации" description="Последняя доступная сборка в каждом канале." />
         <CardContent className="flex flex-wrap gap-3">
           {latestByChannel.length ? (
             latestByChannel.map((build) => (
               <button
                 key={build.id}
-                className="rounded-3xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-left transition hover:border-[var(--primary)]"
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-left transition hover:border-[var(--primary)]"
                 onClick={() => setSelectedBuild(build)}
                 type="button"
               >
@@ -137,22 +137,22 @@ export default function ProjectDetailPage() {
               </button>
             ))
           ) : (
-            <p className="text-sm text-[var(--text-muted)]">Latest channel markers are not available yet.</p>
+            <p className="text-sm text-[var(--text-muted)]">В каналах пока нет актуальных сборок.</p>
           )}
         </CardContent>
       </Card>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(360px,0.9fr)]">
         <Card>
-          <CardHeader title="Project builds" description="Click a row to inspect delivery metadata and actions." />
+          <CardHeader title="Сборки проекта" description="Нажмите на строку, чтобы посмотреть метаданные и действия." />
           <CardContent>
             {buildsQuery.data?.length ? (
               <DataTable columns={columns} data={buildsQuery.data} onRowClick={setSelectedBuild} />
             ) : (
               <EmptyState
-                title="No builds for this project"
-                description="Use Upload to publish the first APK and populate this project timeline."
-                action={<Button onClick={() => router.push(`/upload?projectId=${projectId}`)}>Upload APK</Button>}
+                title="В проекте пока нет сборок"
+                description="Загрузите первый APK, чтобы начать историю публикаций."
+                action={<Button onClick={() => router.push(`/upload?projectId=${projectId}`)}>Загрузить APK</Button>}
               />
             )}
           </CardContent>

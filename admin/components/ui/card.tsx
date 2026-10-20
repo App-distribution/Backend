@@ -11,7 +11,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)]",
+        "rounded-[var(--radius)] border border-[var(--border-soft)] bg-[var(--surface)] shadow-[var(--shadow-soft)]",
         className,
       )}
     >
@@ -32,10 +32,10 @@ export function CardHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className={cn("flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4", className)}>
+    <div className={cn("flex items-start justify-between gap-4 border-b border-[var(--border-soft)] px-6 py-5", className)}>
       <div>
-        <h2 className="text-base font-semibold text-[var(--text-strong)]">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-[var(--text-muted)]">{description}</p> : null}
+        <h2 className="font-[var(--font-display)] text-lg font-bold tracking-[-0.015em] text-[var(--text-strong)]">{title}</h2>
+        {description ? <p className="mt-1 text-[13px] leading-5 text-[var(--text-muted)]">{description}</p> : null}
       </div>
       {action}
     </div>
@@ -49,5 +49,5 @@ export function CardContent({
   className?: string;
   children: ReactNode;
 }) {
-  return <div className={cn("px-5 py-4", className)}>{children}</div>;
+  return <div className={cn("px-6 py-5", className)}>{children}</div>;
 }

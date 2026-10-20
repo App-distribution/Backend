@@ -5,50 +5,66 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BuildDetailPanel } from "@/components/build-detail-panel";
 import { BuildStatusBadge, ChannelBadge, EnvironmentBadge } from "@/components/domain-badges";
+import { Icon } from "@/components/icons";
 import { DataTable } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input, Label, Select } from "@/components/ui/field";
-import { formatDateTime, truncateMiddle } from "@/lib/format";
-import { useDeleteBuildMutation, useMeQuery, useProjectBuildsQuery, useProjectsQuery, useRecentBuildsQuery, useUpdateBuildMutation } from "@/lib/queries";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input, Select } from "@/components/ui/field";
+import { formatBytes, formatDateTime, truncateMiddle } from "@/lib/format";
+import {
+  useDeleteBuildMutation,
+  useMeQuery,
+  useProjectBuildsQuery,
+  useProjectsQuery,
+  useRecentBuildsQuery,
+  useUpdateBuildMutation,
+} from "@/lib/queries";
 import type { Build, ReleaseChannel } from "@/lib/types";
 
 const columnHelper = createColumnHelper<Build>();
 
 const columns = [
   columnHelper.accessor("versionName", {
-    header: "Version",
+    header: "Версия",
     cell: (info) => (
       <div>
-        <p className="font-semibold">{info.getValue()}</p>
-        <p className="font-[var(--font-mono)] text-xs text-[var(--text-muted)]">{info.row.original.versionCode}</p>
+        <p className="font-[var(--font-display)] text-base font-bold tracking-[-0.015em]">{info.getValue()}</p>
+        <p className="mt-1 font-[var(--font-mono)] text-[10px] text-[var(--text-muted)]">код {info.row.original.versionCode}</p>
       </div>
     ),
   }),
-  columnHelper.accessor("channel", {
-    header: "Channel",
-    cell: (info) => <ChannelBadge channel={info.getValue()} />,
-  }),
   columnHelper.accessor("environment", {
-    header: "Environment",
+    header: "Окружение",
     cell: (info) => <EnvironmentBadge environment={info.getValue()} />,
   }),
-  columnHelper.accessor("branch", {
-    header: "Branch",
-    cell: (info) => info.getValue() ?? "—",
-  }),
-  columnHelper.accessor("commitHash", {
-    header: "Commit",
-    cell: (info) => <span className="font-[var(--font-mono)]">{truncateMiddle(info.getValue(), 4)}</span>,
+  columnHelper.accessor("channel", {
+    header: "Канал",
+    cell: (info) => <span className="font-[var(--font-mono)] text-[10px] text-[var(--text-muted)]">{info.getValue()}</span>,
   }),
   columnHelper.accessor("status", {
-    header: "Status",
+    header: "Статус",
     cell: (info) => <BuildStatusBadge status={info.getValue()} />,
   }),
+  columnHelper.accessor("branch", {
+    header: "Ветка",
+    cell: (info) => (
+      <span className="block max-w-48 truncate font-[var(--font-mono)] text-[10px] text-[var(--text-muted)]" title={info.getValue() ?? undefined}>
+        {info.getValue() ?? "—"}
+      </span>
+    ),
+  }),
+  columnHelper.accessor("commitHash", {
+    header: "Коммит",
+    cell: (info) => <span className="font-[var(--font-mono)] text-[10px]">{truncateMiddle(info.getValue(), 4)}</span>,
+  }),
   columnHelper.accessor("uploadDate", {
-    header: "Uploaded",
-    cell: (info) => formatDateTime(info.getValue()),
+    header: "Загружена",
+    cell: (info) => <span className="whitespace-nowrap">{formatDateTime(info.getValue())}</span>,
+  }),
+  columnHelper.accessor("fileSize", {
+    header: "Размер",
+    cell: (info) => <span className="whitespace-nowrap font-[var(--font-mono)] text-[10px]">{formatBytes(info.getValue())}</span>,
   }),
 ];
 
@@ -78,98 +94,113 @@ export default function BuildsPage() {
     }
   }, [projectId, projectsQuery.data]);
 
-  useEffect(() => {
-    if (rows.length && (!selectedBuild || !rows.some((build) => build.id === selectedBuild.id))) {
-      setSelectedBuild(rows[0]);
-    }
-  }, [rows, selectedBuild]);
-
   const currentProject = useMemo(
     () => projectsQuery.data?.find((project) => project.id === projectId),
     [projectId, projectsQuery.data],
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader
         eyebrow="Builds"
-        title="Delivery timeline"
-        description="This page is optimized for dense technical scanning. Filters are server-driven per project because the current backend exposes project-scoped build listings."
-        actions={<Button onClick={() => router.push("/upload")}>Upload build</Button>}
+        title="Доступные сборки"
+        description={`Проверяйте версии, каналы и окружения. ${rows.length} сборок в текущей выборке.`}
+        actions={
+          canManage ? (
+            <Button className="min-w-[190px]" onClick={() => router.push(`/upload?projectId=${projectId}`)}>
+              <Icon className="size-[18px]" name="cloud-upload" />
+              Загрузить APK
+            </Button>
+          ) : null
+        }
       />
 
-      <Card>
-        <CardHeader title="Build filters" description="Select a project to unlock server-side search and channel filtering." />
-        <CardContent className="grid gap-4 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-end">
-          <div>
-            <Label>Project scope</Label>
-            <Select
-              value={projectId}
-              onChange={(event) => {
-                const nextProjectId = event.target.value;
-                setProjectId(nextProjectId);
-                setSelectedBuild(null);
-              }}
-            >
-              {(projectsQuery.data ?? []).map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label>Search</Label>
-            <Input placeholder="version, branch, commit" value={search} onChange={(event) => setSearch(event.target.value)} />
-          </div>
-          <div>
-            <Label>Channel</Label>
-            <Select value={channel} onChange={(event) => setChannel(event.target.value as ReleaseChannel | "")}>
-              <option value="">All channels</option>
-              <option value="NIGHTLY">Nightly</option>
-              <option value="ALPHA">Alpha</option>
-              <option value="BETA">Beta</option>
-              <option value="RC">RC</option>
-              <option value="INTERNAL">Internal</option>
-              <option value="CUSTOM">Custom</option>
-            </Select>
-          </div>
-          <Button disabled={!projectId} variant="secondary" onClick={() => router.push(`/projects/${projectId}`)}>
-            Open project
-          </Button>
-        </CardContent>
-      </Card>
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(360px,0.9fr)]">
-        <Card>
-          <CardHeader
-            title={currentProject ? `${currentProject.name} builds` : "Workspace recent feed"}
-            description={
-              currentProject
-                ? "Project-scoped list from current backend API."
-                : "Fallback feed until a workspace-wide builds endpoint is added."
-            }
+      <section aria-label="Фильтры сборок" className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <div className="relative min-w-0 flex-[1.5]">
+          <Icon className="pointer-events-none absolute left-3.5 top-1/2 size-[17px] -translate-y-1/2 text-[var(--text-muted)]" name="search" />
+          <Input
+            aria-label="Поиск по версии, ветке или коммиту"
+            className="bg-[var(--surface)] pl-10"
+            placeholder="Версия, ветка или коммит"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
           />
-          <CardContent>
-            <DataTable columns={columns} data={rows} onRowClick={setSelectedBuild} />
-          </CardContent>
-        </Card>
-
-        <BuildDetailPanel
-          build={selectedBuild}
-          canManage={Boolean(canManage)}
-          onDelete={async () => {
-            if (!selectedBuild) return;
-            await deleteBuild.mutateAsync(selectedBuild.id);
+        </div>
+        <Select
+          aria-label="Проект"
+          className="bg-[var(--surface)] xl:max-w-[260px]"
+          value={projectId}
+          onChange={(event) => {
+            setProjectId(event.target.value);
             setSelectedBuild(null);
           }}
-          onUpdate={async (payload) => {
-            if (!selectedBuild) return;
-            const updated = await updateBuild.mutateAsync({ buildId: selectedBuild.id, payload });
-            setSelectedBuild(updated);
-          }}
-        />
+        >
+          {(projectsQuery.data ?? []).map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </Select>
+        <Select
+          aria-label="Канал"
+          className="bg-[var(--surface)] xl:max-w-[180px]"
+          value={channel}
+          onChange={(event) => setChannel(event.target.value as ReleaseChannel | "")}
+        >
+          <option value="">Все каналы</option>
+          <option value="NIGHTLY">NIGHTLY</option>
+          <option value="ALPHA">ALPHA</option>
+          <option value="BETA">BETA</option>
+          <option value="RC">RC</option>
+          <option value="INTERNAL">INTERNAL</option>
+          <option value="CUSTOM">CUSTOM</option>
+        </Select>
+        <Button disabled={!projectId} variant="secondary" onClick={() => router.push(`/projects/${projectId}`)}>
+          Открыть проект
+          <Icon className="size-4" name="arrow-right" />
+        </Button>
       </section>
+
+      <section aria-label={currentProject ? `Сборки проекта ${currentProject.name}` : "Последние сборки"}>
+        {rows.length ? (
+          <DataTable
+            columns={columns}
+            data={rows}
+            mobileVisibleColumnIds={["versionName", "environment", "status"]}
+            onRowClick={setSelectedBuild}
+            rowLabel={(build) => `Открыть сборку ${build.versionName}, окружение ${build.environment}, статус ${build.status}`}
+          />
+        ) : scopedBuildsQuery.isLoading || recentBuildsQuery.isLoading ? (
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface)] px-6 py-20 text-center text-sm text-[var(--text-muted)]">
+            Загружаем сборки…
+          </div>
+        ) : (
+          <EmptyState
+            title="Сборки не найдены"
+            description="Измените фильтры или загрузите новый APK для выбранного проекта."
+            action={canManage ? <Button onClick={() => router.push(`/upload?projectId=${projectId}`)}>Загрузить APK</Button> : undefined}
+          />
+        )}
+      </section>
+
+      {selectedBuild ? (
+        <section className="pt-1">
+          <BuildDetailPanel
+            build={selectedBuild}
+            canManage={Boolean(canManage)}
+            onDelete={async () => {
+              await deleteBuild.mutateAsync(selectedBuild.id);
+              setSelectedBuild(null);
+            }}
+            onUpdate={async (payload) => {
+              const updated = await updateBuild.mutateAsync({ buildId: selectedBuild.id, payload });
+              setSelectedBuild(updated);
+            }}
+          />
+        </section>
+      ) : (
+        <p className="text-center text-xs text-[var(--text-muted)]">Нажмите на строку, чтобы открыть метаданные и действия сборки.</p>
+      )}
     </div>
   );
 }

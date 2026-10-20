@@ -20,7 +20,7 @@ const columnHelper = createColumnHelper<Build>();
 
 const columns = [
   columnHelper.accessor("versionName", {
-    header: "Version",
+    header: "Версия",
     cell: (info) => (
       <div>
         <p className="font-semibold text-[var(--text-strong)]">{info.getValue()}</p>
@@ -29,15 +29,15 @@ const columns = [
     ),
   }),
   columnHelper.accessor("channel", {
-    header: "Channel",
+    header: "Канал",
     cell: (info) => <ChannelBadge channel={info.getValue()} />,
   }),
   columnHelper.accessor("status", {
-    header: "Status",
+    header: "Статус",
     cell: (info) => <BuildStatusBadge status={info.getValue()} />,
   }),
   columnHelper.accessor("uploadDate", {
-    header: "Uploaded",
+    header: "Загружена",
     cell: (info) => (
       <div>
         <p>{formatRelativeTime(info.getValue())}</p>
@@ -67,7 +67,7 @@ export default function OverviewPage() {
       builds.slice(0, 6).map((build) => ({
         id: build.id,
         title: `${build.versionName} · ${build.channel.toLowerCase()}`,
-        description: build.changelog ?? "No release notes provided",
+        description: build.changelog ?? "Описание изменений не добавлено",
         time: formatRelativeTime(build.uploadDate),
       })),
     [builds],
@@ -76,30 +76,30 @@ export default function OverviewPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        eyebrow="Workspace overview"
-        title="Release activity at a glance"
-        description="This screen is optimized for signal, not BI. It answers what changed, where delivery attention is needed and how healthy the current release flow looks."
+        eyebrow="Overview"
+        title="Обзор релизов"
+        description="Главные показатели, последние сборки и сигналы, которые требуют внимания команды."
       />
 
       <section className="grid gap-4 xl:grid-cols-4">
-        <StatCard label="Projects" value={String(projects.length)} hint={`${freshProjectsCount} had recent delivery activity`} />
-        <StatCard label="Uploads / 30 recent" value={String(builds.length)} hint={lastUpload ? `Latest ${formatRelativeTime(lastUpload)}` : "No recent uploads"} />
+        <StatCard label="Проекты" value={String(projects.length)} hint={`${freshProjectsCount} с недавней активностью`} />
+        <StatCard label="Последние загрузки" value={String(builds.length)} hint={lastUpload ? `Последняя ${formatRelativeTime(lastUpload)}` : "Загрузок пока нет"} />
         <StatCard
-          label="Team members"
+          label="Участники"
           value={meQuery.data?.role === "ADMIN" ? String(users.length) : "—"}
-          hint={meQuery.data?.role === "ADMIN" ? "Workspace users connected to this backend" : "Visible to admin role"}
+          hint={meQuery.data?.role === "ADMIN" ? "Пользователи рабочего пространства" : "Доступно администратору"}
         />
-        <StatCard label="Attention required" value={String(flaggedBuilds.length)} hint="Deprecated or mandatory builds in recent feed" delta={flaggedBuilds.length ? "review" : "healthy"} />
+        <StatCard label="Требуют внимания" value={String(flaggedBuilds.length)} hint="Устаревшие или обязательные сборки" delta={flaggedBuilds.length ? "проверить" : "в норме"} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.8fr)]">
         <Card>
           <CardHeader
-            title="Recent builds"
-            description="Latest workspace deliveries across all projects. Use Builds page for project-scoped workflows."
+            title="Последние сборки"
+            description="Недавние публикации во всех проектах рабочего пространства."
             action={
               <Link className="text-sm font-semibold text-[var(--primary)]" href="/builds">
-                Open builds
+                Все сборки
               </Link>
             }
           />
@@ -107,20 +107,20 @@ export default function OverviewPage() {
             {builds.length ? (
               <DataTable columns={columns} data={builds.slice(0, 8)} />
             ) : (
-              <EmptyState title="No recent builds" description="Once upload flow is used, this table becomes the main operational feed." />
+              <EmptyState title="Сборок пока нет" description="После первой загрузки здесь появится рабочая лента публикаций." />
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader
-            title="Workspace activity"
-            description="Backend exposes build feed today. Audit API can later replace this stopgap panel."
+            title="Активность"
+            description="Последние изменения в потоке релизов."
           />
           <CardContent className="space-y-4">
             {activityItems.length ? (
               activityItems.map((item) => (
-                <div key={item.id} className="rounded-3xl bg-[var(--surface-muted)] p-4">
+                <div key={item.id} className="rounded-[10px] bg-[var(--surface-muted)] p-4">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="font-semibold text-[var(--text-strong)]">{item.title}</h3>
                     <Badge tone="primary">{item.time}</Badge>
@@ -129,7 +129,7 @@ export default function OverviewPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[var(--text-muted)]">No activity yet.</p>
+              <p className="text-sm text-[var(--text-muted)]">Активности пока нет.</p>
             )}
           </CardContent>
         </Card>
@@ -137,23 +137,23 @@ export default function OverviewPage() {
 
       <section className="grid gap-4 xl:grid-cols-3">
         <Card>
-          <CardHeader title="Channel health" description="Active vs flagged statuses inside the current recent feed." />
+          <CardHeader title="Состояние каналов" description="Активные сборки и статусы, требующие внимания." />
           <CardContent>
             <ChannelHealthChart builds={builds} />
           </CardContent>
         </Card>
         <Card>
-          <CardHeader title="Environment distribution" description="Where recent build volume is concentrated." />
+          <CardHeader title="По окружениям" description="Распределение последних сборок по средам." />
           <CardContent>
             <EnvironmentDistributionChart builds={builds} />
           </CardContent>
         </Card>
         <Card>
-          <CardHeader title="Attention required" description="Work that deserves manual review right now." />
+          <CardHeader title="Требуют внимания" description="Сборки, которые стоит проверить вручную." />
           <CardContent className="space-y-3">
             {flaggedBuilds.length ? (
               flaggedBuilds.slice(0, 5).map((build) => (
-                <div key={build.id} className="rounded-3xl bg-[var(--surface-muted)] p-4">
+                <div key={build.id} className="rounded-[10px] bg-[var(--surface-muted)] p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-semibold">{build.versionName}</p>
                     <BuildStatusBadge status={build.status} />
@@ -164,7 +164,7 @@ export default function OverviewPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[var(--text-muted)]">No flagged builds in the current recent feed.</p>
+              <p className="text-sm text-[var(--text-muted)]">Сборок с предупреждениями нет.</p>
             )}
           </CardContent>
         </Card>

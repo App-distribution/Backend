@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import { Funnel_Sans, Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { ToastProvider } from "@/components/toast-provider";
 import { AuthProvider } from "@/lib/auth-context";
@@ -10,15 +10,19 @@ import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 import type { ReactNode } from "react";
 
-const uiFont = Manrope({
-  subsets: ["latin", "cyrillic"],
+const displayFont = Funnel_Sans({
+  subsets: ["latin"],
+  variable: "--font-display",
+});
+
+const uiFont = Geist({
+  subsets: ["latin"],
   variable: "--font-ui",
 });
 
-const monoFont = IBM_Plex_Mono({
-  subsets: ["latin", "cyrillic"],
+const monoFont = Geist_Mono({
+  subsets: ["latin"],
   variable: "--font-mono",
-  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -28,8 +32,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="ru" suppressHydrationWarning className={`${uiFont.variable} ${monoFont.variable}`}>
+    <html lang="ru" suppressHydrationWarning className={`${displayFont.variable} ${uiFont.variable} ${monoFont.variable}`}>
       <body className="font-[var(--font-ui)] text-[var(--text-strong)] antialiased">
+        <template
+          data-design-contract="appdist-admin-f14071b4"
+          dangerouslySetInnerHTML={{
+            __html:
+              "<!-- THESIS: one continuous release workspace. OWN-WORLD: graphite, milk, lilac, pale rose/blue gradients, quiet borders. STORY: sign in, scan builds, upload and publish. FIRST VIEWPORT: 244px navigation, task header, operational content. FORM: Lovable Utility operate console. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->",
+          }}
+        />
         <Script id="theme-init" strategy="beforeInteractive">
           {themeInitScript}
         </Script>

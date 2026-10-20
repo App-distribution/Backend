@@ -20,10 +20,10 @@ export default function SystemPage() {
       <div className="space-y-4">
         <PageHeader
           eyebrow="System"
-          title="Operational diagnostics"
-          description="This route is reserved for workspace admins because it concentrates system-oriented context."
+          title="Состояние системы"
+          description="Системная информация доступна только администраторам рабочего пространства."
         />
-        <EmptyState title="Admins only" description="Use an admin account to inspect system-level diagnostics." />
+        <EmptyState title="Только для администраторов" description="Войдите с ролью ADMIN, чтобы открыть диагностику." />
       </div>
     );
   }
@@ -32,29 +32,29 @@ export default function SystemPage() {
     <div className="space-y-4">
       <PageHeader
         eyebrow="System"
-        title="Operational diagnostics"
-        description="This is a product health screen, not a DevOps dashboard. It shows what can be inferred from the current API and lists the next backend additions needed for true system observability."
+        title="Состояние системы"
+        description="Доступные показатели рабочего пространства и текущие ограничения API."
       />
 
       <section className="grid gap-4 xl:grid-cols-4">
-        <StatCard label="Workspace" value={workspaceQuery.data?.slug ?? "—"} hint="Resolved from authenticated context" />
-        <StatCard label="Projects" value={String(projectsQuery.data?.length ?? 0)} hint="Configured applications in this workspace" />
-        <StatCard label="Members" value={String(teamQuery.data?.length ?? 0)} hint="Users tied to the workspace" />
-        <StatCard label="Recent builds" value={String(recentBuildsQuery.data?.length ?? 0)} hint="Current recent feed sample size" />
+        <StatCard label="Пространство" value={workspaceQuery.data?.slug ?? "—"} hint="Определено из текущей сессии" />
+        <StatCard label="Проекты" value={String(projectsQuery.data?.length ?? 0)} hint="Приложения в рабочем пространстве" />
+        <StatCard label="Участники" value={String(teamQuery.data?.length ?? 0)} hint="Пользователи рабочего пространства" />
+        <StatCard label="Последние сборки" value={String(recentBuildsQuery.data?.length ?? 0)} hint="Текущая выборка публикаций" />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
         <Card>
-          <CardHeader title="Available now" description="What the current API lets the admin console infer safely." />
+          <CardHeader title="Доступно сейчас" description="Данные, которые возвращает текущий API." />
           <CardContent className="space-y-3 text-sm text-[var(--text)]">
-            <p>Authenticated user: {meQuery.data?.email ?? "—"}</p>
-            <p>Workspace created: {workspaceQuery.data ? formatDateTime(workspaceQuery.data.createdAt) : "—"}</p>
-            <p>Latest build seen: {recentBuildsQuery.data?.[0] ? formatDateTime(recentBuildsQuery.data[0].uploadDate) : "—"}</p>
-            <p>Backend health endpoint: not exposed</p>
+            <p>Пользователь: {meQuery.data?.email ?? "—"}</p>
+            <p>Пространство создано: {workspaceQuery.data ? formatDateTime(workspaceQuery.data.createdAt) : "—"}</p>
+            <p>Последняя сборка: {recentBuildsQuery.data?.[0] ? formatDateTime(recentBuildsQuery.data[0].uploadDate) : "—"}</p>
+            <p>Health endpoint backend: не предоставлен</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader title="Recommended backend additions" description="High-leverage endpoints for making System page truly useful." />
+          <CardHeader title="Что добавить в backend" description="Методы API для полноценной системной диагностики." />
           <CardContent className="space-y-3 text-sm text-[var(--text)]">
             <p>`GET /api/v1/system/health` for DB, MinIO and Firebase status.</p>
             <p>`GET /api/v1/workspaces/me/summary` for aggregate cards and counters.</p>

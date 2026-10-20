@@ -15,13 +15,13 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-5 py-5 shadow-[var(--shadow-soft)] lg:flex-row lg:items-start lg:justify-between", className)}>
+    <div className={cn("app-gradient flex min-h-[154px] flex-col gap-6 overflow-hidden rounded-[14px] border border-[#dad7e8] px-7 py-7 lg:flex-row lg:items-start lg:justify-between dark:border-[var(--border)]", className)}>
       <div>
-        {eyebrow ? <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">{eyebrow}</p> : null}
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-muted)]">{description}</p>
+        {eyebrow ? <span className="sr-only">{eyebrow}</span> : null}
+        <h1 className="font-[var(--font-display)] text-[clamp(2rem,3vw,2.5rem)] font-bold leading-none tracking-[-0.025em]">{title}</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-muted)]">{description}</p>
       </div>
-      {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap gap-3">{actions}</div> : null}
     </div>
   );
 }

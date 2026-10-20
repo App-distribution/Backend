@@ -15,7 +15,7 @@ const columnHelper = createColumnHelper<User>();
 
 const columns = [
   columnHelper.accessor("name", {
-    header: "Name",
+    header: "Имя",
     cell: (info) => (
       <div>
         <p className="font-semibold">{info.getValue()}</p>
@@ -24,17 +24,17 @@ const columns = [
     ),
   }),
   columnHelper.accessor("role", {
-    header: "Role",
+    header: "Роль",
     cell: (info) => <RoleBadge role={info.getValue()} />,
   }),
   columnHelper.accessor("createdAt", {
-    header: "Joined",
+    header: "Добавлен",
     cell: (info) => formatDateTime(info.getValue()),
   }),
   columnHelper.display({
     id: "fcm",
     header: "FCM",
-    cell: () => <Badge tone="neutral">not exposed</Badge>,
+    cell: () => <Badge tone="neutral">нет данных</Badge>,
   }),
 ];
 
@@ -48,22 +48,22 @@ export default function TeamPage() {
     <div className="space-y-4">
       <PageHeader
         eyebrow="Team"
-        title="Workspace members"
-        description="The backend currently exposes a read-only team list for admins. Role edits and invite flows can be layered in when member-management endpoints are added."
+        title="Команда"
+        description="Пользователи рабочего пространства и их роли. Сейчас список доступен только для просмотра."
       />
       {!isAdmin ? (
         <EmptyState
-          title="Admins only"
-          description="The current backend protects workspace user listing behind ADMIN role."
+          title="Только для администраторов"
+          description="Список команды доступен пользователям с ролью ADMIN."
         />
       ) : (
         <Card>
-          <CardHeader title="People with access" description="Current DTO does not expose raw FCM state, so the column is kept intentionally neutral." />
+          <CardHeader title="Пользователи с доступом" description="Роли и дата присоединения к рабочему пространству." />
           <CardContent>
             {teamQuery.data?.length ? (
               <DataTable columns={columns} data={teamQuery.data} />
             ) : (
-              <EmptyState title="No members" description="Workspace users will appear here after OTP sign in creates or joins the workspace." />
+              <EmptyState title="Участников пока нет" description="Пользователи появятся после первого входа по одноразовому коду." />
             )}
           </CardContent>
         </Card>

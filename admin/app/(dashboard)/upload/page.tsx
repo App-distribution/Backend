@@ -5,20 +5,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ApiError } from "@/lib/api";
+import { Icon } from "@/components/icons";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldHint, Input, Label, Select, Textarea } from "@/components/ui/field";
+import { ApiError } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
 import { useMeQuery, useProjectsQuery, useUploadBuildMutation } from "@/lib/queries";
 
 const uploadSchema = z.object({
-  projectId: z.string().min(1, "Project is required"),
+  projectId: z.string().min(1, "Выберите проект"),
   environment: z.enum(["DEV", "QA", "STAGING", "PROD_LIKE"]),
   channel: z.enum(["NIGHTLY", "ALPHA", "BETA", "RC", "INTERNAL", "CUSTOM"]),
-  buildType: z.string().min(1, "Build type is required"),
+  buildType: z.string().min(1, "Укажите тип сборки"),
   flavor: z.string().optional(),
   branch: z.string().optional(),
   commitHash: z.string().optional(),
@@ -34,11 +35,12 @@ export default function UploadPage() {
   const projectsQuery = useProjectsQuery();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
-  const [stage, setStage] = useState("Idle");
+  const [stage, setStage] = useState("Ожидаем APK");
   const [message, setMessage] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
 
   const uploadMutation = useUploadBuildMutation((nextProgress) => {
-    setStage("Uploading APK");
+    setStage("Загружаем APK");
     setProgress(nextProgress.progress);
   });
 
@@ -65,18 +67,38 @@ export default function UploadPage() {
   }, [form, projectsQuery.data]);
 
   const selectedProjectId = form.watch("projectId");
+  const selectedEnvironment = form.watch("environment");
+  const selectedChannel = form.watch("channel");
   const selectedProject = useMemo(
     () => projectsQuery.data?.find((project) => project.id === selectedProjectId),
     [projectsQuery.data, selectedProjectId],
   );
 
+  const selectApkFile = (file: File | null) => {
+    if (file && !file.name.toLowerCase().endsWith(".apk")) {
+      setSelectedFile(null);
+      setIsError(true);
+      setMessage("Можно загрузить только файл с расширением .apk");
+      setStage("Неверный формат файла");
+      setProgress(0);
+      return;
+    }
+    setSelectedFile(file);
+    setMessage(null);
+    setIsError(false);
+    setStage(file ? "APK выбран" : "Ожидаем APK");
+    setProgress(0);
+  };
+
   const submit = form.handleSubmit(async (values) => {
     if (!selectedFile) {
-      setMessage("APK file is required");
+      setIsError(true);
+      setMessage("Выберите APK-файл перед публикацией.");
       return;
     }
     setMessage(null);
-    setStage("Preparing upload");
+    setIsError(false);
+    setStage("Подготавливаем загрузку");
     setProgress(0);
     try {
       await uploadMutation.mutateAsync({
@@ -87,68 +109,118 @@ export default function UploadPage() {
         commitHash: values.commitHash || undefined,
         changelog: values.changelog || undefined,
       });
-      setStage("Build saved");
+      setStage("Сборка опубликована");
       setProgress(100);
-      setMessage("Upload completed");
+      setMessage("Загрузка завершена. Открываем проект…");
       router.push(`/projects/${values.projectId}`);
     } catch (error) {
-      setStage("Failed");
-      setMessage(error instanceof ApiError ? error.message : "Upload failed");
+      setStage("Загрузка не выполнена");
+      setIsError(true);
+      setMessage(error instanceof ApiError ? error.message : "Не удалось загрузить сборку. Попробуйте снова.");
     }
   });
 
   if (!canUpload) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <PageHeader
           eyebrow="Upload"
-          title="Publish a new APK"
-          description="Uploading builds is restricted to Admin and Uploader roles."
+          title="Новая сборка"
+          description="Загрузка доступна администраторам и пользователям с ролью Uploader."
         />
-        <EmptyState title="Insufficient permissions" description="Use an admin or uploader account to access the release upload flow." />
+        <EmptyState title="Недостаточно прав" description="Войдите под учётной записью администратора или загрузчика сборок." />
       </div>
     );
   }
 
+  const hasFile = Boolean(selectedFile);
+  const isPublishing = uploadMutation.isPending;
+  const isPublished = progress === 100 && !isError;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader
         eyebrow="Upload"
-        title="Publish a new APK"
-        description="Upload is designed as a controlled release operation. Metadata fields stay visible while the transfer is in progress."
+        title="Новая сборка"
+        description="Добавьте APK и проверьте метаданные перед публикацией в выбранный канал."
+        actions={
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-[#dad7e8] bg-[color:color-mix(in_srgb,var(--surface)_78%,transparent)] px-4 py-2.5 font-[var(--font-mono)] text-[9px] font-semibold uppercase tracking-[0.05em] dark:border-[var(--border)]">
+              <Icon className="size-4 text-[var(--success)]" name="shield-check" />
+              Доступ: ADMIN / UPLOADER
+            </div>
+            <ol aria-label="Этапы публикации" className="flex items-center justify-end gap-2 text-[10px] font-semibold">
+              <UploadStep complete={hasFile} current={!hasFile} label="Файл" number={1} />
+              <UploadStep complete={false} current={hasFile && !isPublishing && !isPublished} label="Данные" number={2} />
+              <UploadStep complete={isPublished} current={isPublishing} label="Публикация" number={3} />
+            </ol>
+          </div>
+        }
       />
 
-      <form className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_380px]" onSubmit={submit}>
+      <form className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_358px]" onSubmit={submit}>
         <Card>
-          <CardHeader title="Build payload" description="APK file plus release metadata sent to /builds/upload" />
-          <CardContent className="grid gap-4 md:grid-cols-2">
+          <CardHeader title="APK и метаданные" description="Версия и код сборки будут извлечены сервером после загрузки." />
+          <CardContent className="grid gap-x-4 gap-y-5 md:grid-cols-2">
             <div className="md:col-span-2">
-              <Label>APK file</Label>
+              <Label htmlFor="apk-file">APK-файл</Label>
+              <label
+                className="app-gradient flex min-h-[122px] cursor-pointer flex-col justify-center gap-4 rounded-[10px] border border-[#cfcbe0] p-5 transition-colors hover:border-[var(--accent-strong)] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent-strong)] sm:flex-row sm:items-center dark:border-[var(--border)]"
+                htmlFor="apk-file"
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  selectApkFile(event.dataTransfer.files?.[0] ?? null);
+                }}
+              >
+                <span className="grid size-[52px] shrink-0 place-items-center rounded-[10px] bg-[var(--text-strong)] text-[var(--surface)]">
+                  <Icon className="size-6" name="file-archive" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-[var(--text-strong)]">
+                    {selectedFile?.name ?? "Перетащите APK сюда или выберите файл"}
+                  </span>
+                  <span className="mt-2 block font-[var(--font-mono)] text-[10px] text-[var(--text-muted)]">
+                    {selectedFile ? `${formatBytes(selectedFile.size)} · файл готов к загрузке` : "APK · до 500 MB"}
+                  </span>
+                  {selectedFile ? (
+                    <span className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-[var(--badge-success-bg)] px-2.5 py-1.5 font-[var(--font-mono)] text-[9px] font-semibold uppercase text-[var(--badge-success-text)]">
+                      <Icon className="size-3.5" name="check" />
+                      APK выбран
+                    </span>
+                  ) : null}
+                </span>
+                <span className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-xs font-semibold text-[var(--text-strong)]">
+                  {selectedFile ? "Заменить APK" : "Выбрать APK"}
+                </span>
+              </label>
               <input
                 accept=".apk"
-                className="block w-full rounded-3xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)] px-4 py-8 text-sm"
-                onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
+                className="sr-only"
+                id="apk-file"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  selectApkFile(file);
+                }}
                 type="file"
               />
-              <FieldHint>Current backend accepts multipart upload up to 500 MB.</FieldHint>
+              <FieldHint>Сервер принимает multipart-загрузку размером до 500 MB.</FieldHint>
             </div>
+
             <div>
-              <Label>Project</Label>
-              <Select {...form.register("projectId")}>
+              <Label htmlFor="upload-project">Проект</Label>
+              <Select aria-describedby={form.formState.errors.projectId ? "upload-project-error" : undefined} aria-invalid={Boolean(form.formState.errors.projectId)} id="upload-project" {...form.register("projectId")}>
                 {(projectsQuery.data ?? []).map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
                   </option>
                 ))}
               </Select>
+              {form.formState.errors.projectId ? <FieldError id="upload-project-error">{form.formState.errors.projectId.message}</FieldError> : null}
             </div>
             <div>
-              <Label>Build type</Label>
-              <Input {...form.register("buildType")} placeholder="debug / release" />
-            </div>
-            <div>
-              <Label>Environment</Label>
-              <Select {...form.register("environment")}>
+              <Label htmlFor="upload-environment">Окружение</Label>
+              <Select id="upload-environment" {...form.register("environment")}>
                 <option value="DEV">DEV</option>
                 <option value="QA">QA</option>
                 <option value="STAGING">STAGING</option>
@@ -156,8 +228,8 @@ export default function UploadPage() {
               </Select>
             </div>
             <div>
-              <Label>Channel</Label>
-              <Select {...form.register("channel")}>
+              <Label htmlFor="upload-channel">Канал</Label>
+              <Select id="upload-channel" {...form.register("channel")}>
                 <option value="NIGHTLY">NIGHTLY</option>
                 <option value="ALPHA">ALPHA</option>
                 <option value="BETA">BETA</option>
@@ -167,55 +239,121 @@ export default function UploadPage() {
               </Select>
             </div>
             <div>
-              <Label>Flavor</Label>
-              <Input {...form.register("flavor")} placeholder="qa, prod" />
+              <Label htmlFor="upload-build-type">Тип сборки</Label>
+              <Input aria-describedby={form.formState.errors.buildType ? "upload-build-type-error" : undefined} aria-invalid={Boolean(form.formState.errors.buildType)} id="upload-build-type" {...form.register("buildType")} placeholder="debug / release" />
+              {form.formState.errors.buildType ? <FieldError id="upload-build-type-error">{form.formState.errors.buildType.message}</FieldError> : null}
             </div>
             <div>
-              <Label>Branch</Label>
-              <Input {...form.register("branch")} placeholder="feature/build-flow" />
+              <Label htmlFor="upload-flavor">Вариант сборки</Label>
+              <Input id="upload-flavor" {...form.register("flavor")} placeholder="qa, prod" />
             </div>
             <div>
-              <Label>Commit hash</Label>
-              <Input {...form.register("commitHash")} placeholder="d34db33f" />
+              <Label htmlFor="upload-branch">Ветка</Label>
+              <Input id="upload-branch" {...form.register("branch")} placeholder="feature/build-flow" />
+            </div>
+            <div>
+              <Label htmlFor="upload-commit">Хеш коммита</Label>
+              <Input id="upload-commit" {...form.register("commitHash")} placeholder="d34db33f" />
             </div>
             <div className="md:col-span-2">
-              <Label>Changelog</Label>
-              <Textarea {...form.register("changelog")} placeholder="Summarize what testers need to know." />
+              <Label htmlFor="upload-changelog">Что изменилось</Label>
+              <Textarea id="upload-changelog" {...form.register("changelog")} placeholder="Коротко опишите изменения для тестировщиков." />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="h-fit">
-          <CardHeader title="Upload summary" description="Live session state during the release operation." />
-          <CardContent className="space-y-4">
-            <div className="rounded-3xl bg-[var(--surface-muted)] p-4">
-              <p className="text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">Selected project</p>
-              <p className="mt-2 text-base font-semibold">{selectedProject?.name ?? "—"}</p>
-              <p className="mt-1 font-[var(--font-mono)] text-sm text-[var(--text-muted)]">
-                {selectedProject?.packageName ?? "No package selected"}
+        <Card className="h-fit xl:sticky xl:top-[88px]">
+          <CardHeader title="Перед публикацией" description="Проверьте, куда попадёт эта сборка." />
+          <CardContent className="space-y-5">
+            <div className="rounded-[10px] bg-[var(--surface-muted)] p-4">
+              <p className="font-[var(--font-mono)] text-[9px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)]">Проект</p>
+              <p className="mt-2 text-sm font-semibold">{selectedProject?.name ?? "—"}</p>
+              <p className="mt-1 truncate font-[var(--font-mono)] text-[10px] text-[var(--text-muted)]">
+                {selectedProject?.packageName ?? "Проект не выбран"}
               </p>
             </div>
-            <div className="rounded-3xl bg-[var(--surface-muted)] p-4">
-              <p className="text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">Selected file</p>
-              <p className="mt-2 text-sm font-semibold">{selectedFile?.name ?? "No APK selected"}</p>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">{selectedFile ? formatBytes(selectedFile.size) : "—"}</p>
+
+            <dl className="divide-y divide-[var(--border-soft)] text-xs">
+              <SummaryRow label="Файл" value={selectedFile?.name ?? "Не выбран"} />
+              <SummaryRow label="Размер" value={selectedFile ? formatBytes(selectedFile.size) : "—"} mono />
+              <SummaryRow label="Окружение" value={selectedEnvironment} mono />
+              <SummaryRow label="Канал" value={selectedChannel} mono />
+            </dl>
+
+            <div className="app-gradient rounded-[10px] border border-[#ddd9ea] p-4 dark:border-[var(--border)]">
+              <p className="font-[var(--font-mono)] text-[9px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)]">Куда публикуем</p>
+              <p className="mt-2 font-[var(--font-mono)] text-[11px] font-semibold">{selectedEnvironment} · {selectedChannel}</p>
             </div>
+
             <div>
-              <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="font-semibold text-[var(--text)]">{stage}</span>
-                <span className="text-[var(--text-muted)]">{progress}%</span>
+              <div className="mb-2 flex items-center justify-between text-xs">
+                <span className={isError ? "font-semibold text-[var(--danger)]" : "font-semibold text-[var(--text)]"}>{stage}</span>
+                <span className="font-[var(--font-mono)] text-[10px] text-[var(--text-muted)]">{progress}%</span>
               </div>
-              <div className="h-2 rounded-full bg-[var(--surface-muted)]">
-                <div className="h-2 rounded-full bg-[var(--primary)] transition-all" style={{ width: `${progress}%` }} />
+              <div
+                aria-label={stage}
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={progress}
+                className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-muted)]"
+                role="progressbar"
+              >
+                <div
+                  className={`h-full rounded-full transition-[width] duration-300 ${isError ? "bg-[var(--danger)]" : "bg-[var(--success)]"}`}
+                  style={{ width: `${progress}%` }}
+                />
               </div>
             </div>
-            {message ? <p className="text-sm text-[var(--text-muted)]">{message}</p> : null}
-            <Button className="w-full" disabled={uploadMutation.isPending} type="submit">
-              Start upload
+
+            {message ? (
+              <div aria-live="polite" className={`rounded-lg px-3 py-2.5 text-xs leading-5 ${isError ? "bg-[var(--badge-danger-bg)] text-[var(--badge-danger-text)]" : "bg-[var(--badge-success-bg)] text-[var(--badge-success-text)]"}`} role={isError ? "alert" : "status"}>
+                {message}
+              </div>
+            ) : null}
+
+            <Button className="h-[50px] w-full" disabled={isPublishing || !selectedFile} type="submit">
+              {isPublishing ? "Публикуем…" : "Опубликовать сборку"}
+              {!isPublishing ? <Icon className="size-[17px]" name="arrow-right" /> : null}
             </Button>
+            <p className="text-center text-[10px] text-[var(--text-muted)]">Действие будет записано в аудит.</p>
           </CardContent>
         </Card>
       </form>
     </div>
   );
+}
+
+function UploadStep({ complete, current, label, number }: { complete: boolean; current: boolean; label: string; number: number }) {
+  return (
+    <li className={`flex items-center gap-1.5 ${complete ? "text-[var(--success)]" : current ? "text-[var(--text-strong)]" : "text-[var(--text-muted)]"}`}>
+      <span
+        className={`grid size-6 place-items-center rounded-full font-[var(--font-mono)] text-[9px] font-bold ${
+          complete
+            ? "bg-[var(--badge-success-bg)] text-[var(--badge-success-text)]"
+            : current
+              ? "bg-[var(--text-strong)] text-[var(--surface)]"
+              : "bg-[var(--surface)] text-[var(--text-muted)]"
+        }`}
+      >
+        {complete ? <Icon className="size-3.5" name="check" /> : number}
+      </span>
+      <span>{label}</span>
+    </li>
+  );
+}
+
+function SummaryRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="grid grid-cols-[86px_minmax(0,1fr)] gap-3 py-3">
+      <dt className="text-[var(--text-muted)]">{label}</dt>
+      <dd className={`truncate text-right text-[var(--text-strong)] ${mono ? "font-[var(--font-mono)] text-[10px]" : ""}`} title={value}>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function FieldError({ children, id }: { children?: string; id?: string }) {
+  if (!children) return null;
+  return <p className="mt-2 text-xs text-[var(--danger)]" id={id}>{children}</p>;
 }

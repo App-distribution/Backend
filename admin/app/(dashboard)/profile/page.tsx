@@ -13,7 +13,7 @@ import { formatDateTime } from "@/lib/format";
 import { useMeQuery, useProfileMutation, useWorkspaceQuery } from "@/lib/queries";
 
 const profileSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Укажите имя"),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -45,9 +45,9 @@ export default function ProfilePage() {
       await profileMutation.mutateAsync({
         name: values.name,
       });
-      setMessage("Profile updated");
+      setMessage("Профиль обновлён");
     } catch (error) {
-      setMessage(error instanceof ApiError ? error.message : "Profile update failed");
+      setMessage(error instanceof ApiError ? error.message : "Не удалось обновить профиль");
     }
   });
 
@@ -55,21 +55,21 @@ export default function ProfilePage() {
     <div className="space-y-4">
       <PageHeader
         eyebrow="Profile"
-        title="Account settings"
-        description="Profile settings are intentionally small in MVP: identity details plus optional FCM token binding."
+        title="Настройки профиля"
+        description="Данные учётной записи и контекст текущего рабочего пространства."
       />
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_360px]">
         <Card>
-          <CardHeader title="Editable profile" description="PATCH /users/me" />
+          <CardHeader title="Данные профиля" description="Имя пользователя в административной панели." />
           <CardContent>
             <form className="space-y-4" onSubmit={submit}>
               <div>
-                <Label>Name</Label>
-                <Input {...form.register("name")} />
+                <Label htmlFor="profile-name">Имя</Label>
+                <Input id="profile-name" {...form.register("name")} />
               </div>
               <Button disabled={profileMutation.isPending} type="submit">
-                Save profile
+                Сохранить
               </Button>
               {message ? <p className="text-sm text-[var(--text-muted)]">{message}</p> : null}
             </form>
@@ -77,12 +77,12 @@ export default function ProfilePage() {
         </Card>
 
         <Card>
-          <CardHeader title="Session context" description="Read-only account and workspace metadata." />
+          <CardHeader title="Текущая сессия" description="Данные аккаунта только для чтения." />
           <CardContent className="space-y-3 text-sm text-[var(--text)]">
             <p>Email: {meQuery.data?.email ?? "—"}</p>
-            <p>Role: {meQuery.data?.role ?? "—"}</p>
-            <p>Workspace: {workspaceQuery.data?.name ?? "—"}</p>
-            <p>Joined: {meQuery.data ? formatDateTime(meQuery.data.createdAt) : "—"}</p>
+            <p>Роль: {meQuery.data?.role ?? "—"}</p>
+            <p>Пространство: {workspaceQuery.data?.name ?? "—"}</p>
+            <p>Добавлен: {meQuery.data ? formatDateTime(meQuery.data.createdAt) : "—"}</p>
           </CardContent>
         </Card>
       </section>
