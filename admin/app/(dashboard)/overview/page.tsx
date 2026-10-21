@@ -125,7 +125,7 @@ export default function OverviewPage() {
                     <h3 className="font-semibold text-[var(--text-strong)]">{item.title}</h3>
                     <Badge tone="primary">{item.time}</Badge>
                   </div>
-                  <p className="mt-2 text-sm text-[var(--text-muted)]">{item.description}</p>
+                  <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-[var(--text-muted)]">{item.description}</p>
                 </div>
               ))
             ) : (
