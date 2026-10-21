@@ -38,6 +38,15 @@ const columns = [
     header: "Окружение",
     cell: (info) => <EnvironmentBadge environment={info.getValue()} />,
   }),
+  columnHelper.display({
+    id: "flavorStand",
+    header: "Вид · стенд",
+    cell: (info) => {
+      const { flavor, stand } = info.row.original;
+      const label = [flavor, stand].filter(Boolean).join(" · ");
+      return <span className="font-[var(--font-mono)] text-[11px] text-[var(--text)]">{label || "—"}</span>;
+    },
+  }),
   columnHelper.accessor("channel", {
     header: "Канал",
     cell: (info) => <span className="font-[var(--font-mono)] text-[10px] text-[var(--text-muted)]">{info.getValue()}</span>,

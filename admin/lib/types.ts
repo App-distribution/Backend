@@ -45,6 +45,8 @@ export interface Build {
   versionCode: number;
   buildNumber: string | null;
   flavor: string | null;
+  /** Стенд, на который смотрит сборка (l10, dev3, prod…). У старых сборок — null. */
+  stand: string | null;
   buildType: string;
   environment: BuildEnvironment;
   channel: ReleaseChannel;
@@ -97,6 +99,7 @@ export interface UploadBuildPayload {
   channel: ReleaseChannel;
   buildType: string;
   flavor?: string;
+  stand?: string;
   branch?: string;
   commitHash?: string;
   changelog?: string;

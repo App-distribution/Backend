@@ -1,5 +1,7 @@
 package com.appdist.domain.service
 
+import com.appdist.domain.repository.BuildFilterValues
+
 import com.appdist.config.AppConfig
 import com.appdist.domain.model.*
 import com.appdist.domain.repository.*
@@ -14,6 +16,15 @@ import java.util.UUID
 
 private val log = KotlinLogging.logger {}
 
+/** Максимальная длина стенда — совпадает с varchar("stand", 32) в BuildsTable. */
+const val MAX_STAND_LENGTH = 32
+
+/**
+ * Вид сборки и стенд приходят из CI как есть («L10 », «Stage-RuStore»).
+ * Приводим к одному виду, чтобы фильтр не делился на «l10» и «L10».
+ */
+fun normalizeBuildTag(value: String?): String? = value?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
+
 data class UploadRequest(
     val projectId: UUID,
     val uploaderId: UUID,
@@ -21,6 +32,7 @@ data class UploadRequest(
     val channel: ReleaseChannel,
     val buildType: String,
     val flavor: String?,
+    val stand: String? = null,
     val branch: String?,
     val commitHash: String?,
     val changelog: String?,
@@ -65,7 +77,8 @@ class BuildService(
             versionName = metadata.versionName,
             versionCode = metadata.versionCode,
             buildNumber = null,
-            flavor = request.flavor,
+            flavor = normalizeBuildTag(request.flavor),
+            stand = normalizeBuildTag(request.stand),
             buildType = request.buildType,
             environment = request.environment,
             channel = request.channel,
@@ -142,11 +155,16 @@ class BuildService(
         buildRepository.listRecent(workspaceId, limit)
 
     suspend fun listBuilds(
-        projectId: UUID, channel: ReleaseChannel?, search: String?, page: Int, limit: Int
-    ): List<Build> = buildRepository.listByProject(projectId, channel, search, page, limit)
+        projectId: UUID, channel: ReleaseChannel?, search: String?, page: Int, limit: Int,
+        flavor: String? = null, stand: String? = null,
+    ): List<Build> = buildRepository.listByProject(
+        projectId, channel, search, page, limit, normalizeBuildTag(flavor), normalizeBuildTag(stand),
+    )
 
     suspend fun countBuilds(projectId: UUID, channel: ReleaseChannel?, search: String?): Int =
         buildRepository.countByProject(projectId, channel, search)
+
+    suspend fun buildFilterValues(projectId: UUID): BuildFilterValues = buildRepository.filterValues(projectId)
 
     suspend fun getBuild(buildId: UUID): Build =
         buildRepository.findById(buildId) ?: error("Build not found")

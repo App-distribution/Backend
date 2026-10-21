@@ -21,6 +21,7 @@ const uploadSchema = z.object({
   channel: z.enum(["NIGHTLY", "ALPHA", "BETA", "RC", "INTERNAL", "CUSTOM"]),
   buildType: z.string().min(1, "Укажите тип сборки"),
   flavor: z.string().optional(),
+  stand: z.string().max(32, "Не длиннее 32 символов").optional(),
   branch: z.string().optional(),
   commitHash: z.string().optional(),
   changelog: z.string().optional(),
@@ -54,6 +55,7 @@ export default function UploadPage() {
       channel: "INTERNAL",
       buildType: "debug",
       flavor: "",
+      stand: "",
       branch: "",
       commitHash: "",
       changelog: "",
@@ -105,6 +107,7 @@ export default function UploadPage() {
         ...values,
         file: selectedFile,
         flavor: values.flavor || undefined,
+        stand: values.stand || undefined,
         branch: values.branch || undefined,
         commitHash: values.commitHash || undefined,
         changelog: values.changelog || undefined,
@@ -244,8 +247,13 @@ export default function UploadPage() {
               {form.formState.errors.buildType ? <FieldError id="upload-build-type-error">{form.formState.errors.buildType.message}</FieldError> : null}
             </div>
             <div>
-              <Label htmlFor="upload-flavor">Вариант сборки</Label>
-              <Input id="upload-flavor" {...form.register("flavor")} placeholder="qa, prod" />
+              <Label htmlFor="upload-flavor">Вид сборки</Label>
+              <Input id="upload-flavor" {...form.register("flavor")} placeholder="stage, prod-rustore" />
+            </div>
+            <div>
+              <Label htmlFor="upload-stand">Стенд</Label>
+              <Input aria-describedby={form.formState.errors.stand ? "upload-stand-error" : undefined} aria-invalid={Boolean(form.formState.errors.stand)} id="upload-stand" {...form.register("stand")} placeholder="l10, dev3, prod" />
+              {form.formState.errors.stand ? <FieldError id="upload-stand-error">{form.formState.errors.stand.message}</FieldError> : null}
             </div>
             <div>
               <Label htmlFor="upload-branch">Ветка</Label>

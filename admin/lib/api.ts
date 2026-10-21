@@ -83,6 +83,7 @@ type ApiBuild = {
   version_code: number;
   build_number: string | null;
   flavor: string | null;
+  stand?: string | null;
   build_type: string;
   environment: Build["environment"];
   channel: Build["channel"];
@@ -171,6 +172,7 @@ function mapBuild(build: ApiBuild): Build {
     versionCode: build.version_code,
     buildNumber: build.build_number,
     flavor: build.flavor,
+    stand: build.stand ?? null,
     buildType: build.build_type,
     environment: build.environment,
     channel: build.channel,
@@ -431,6 +433,7 @@ export const api = {
         formData.set("channel", payload.channel);
         formData.set("buildType", payload.buildType);
         if (payload.flavor) formData.set("flavor", payload.flavor);
+        if (payload.stand) formData.set("stand", payload.stand);
         if (payload.branch) formData.set("branch", payload.branch);
         if (payload.commitHash) formData.set("commitHash", payload.commitHash);
         if (payload.changelog) formData.set("changelog", payload.changelog);

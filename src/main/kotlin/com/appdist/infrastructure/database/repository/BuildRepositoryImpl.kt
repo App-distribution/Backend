@@ -1,6 +1,7 @@
 package com.appdist.infrastructure.database.repository
 
 import com.appdist.domain.model.*
+import com.appdist.domain.repository.BuildFilterValues
 import com.appdist.domain.repository.BuildRepository
 import com.appdist.infrastructure.database.tables.BuildsTable
 import kotlinx.coroutines.Dispatchers
@@ -8,6 +9,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.util.UUID
 
@@ -23,6 +25,7 @@ class BuildRepositoryImpl : BuildRepository {
             row[versionCode] = build.versionCode
             row[buildNumber] = build.buildNumber
             row[flavor] = build.flavor
+            row[stand] = build.stand
             row[buildType] = build.buildType
             row[environment] = build.environment.name
             row[channel] = build.channel.name
@@ -50,18 +53,11 @@ class BuildRepositoryImpl : BuildRepository {
     }
 
     override suspend fun listByProject(
-        projectId: UUID, channel: ReleaseChannel?, search: String?, page: Int, limit: Int
+        projectId: UUID, channel: ReleaseChannel?, search: String?, page: Int, limit: Int,
+        flavor: String?, stand: String?,
     ): List<Build> = dbQuery {
         BuildsTable.selectAll()
-            .where {
-                var condition = BuildsTable.projectId eq projectId
-                if (channel != null) condition = condition and (BuildsTable.channel eq channel.name)
-                if (search != null) condition = condition and (
-                    (BuildsTable.versionName like "%$search%") or
-                    (BuildsTable.branch like "%$search%")
-                )
-                condition
-            }
+            .where { listCondition(projectId, channel, search, flavor, stand) }
             .orderBy(BuildsTable.uploadDate, SortOrder.DESC)
             .limit(limit).offset(page.toLong() * limit)
             .map { it.toBuild() }
@@ -85,18 +81,43 @@ class BuildRepositoryImpl : BuildRepository {
         BuildsTable.selectAll().where { BuildsTable.id eq buildId }.singleOrNull()?.toBuild()
     }
 
-    override suspend fun countByProject(projectId: UUID, channel: ReleaseChannel?, search: String?): Int = dbQuery {
+    override suspend fun countByProject(
+        projectId: UUID, channel: ReleaseChannel?, search: String?, flavor: String?, stand: String?,
+    ): Int = dbQuery {
         BuildsTable.selectAll()
-            .where {
-                var condition = BuildsTable.projectId eq projectId
-                if (channel != null) condition = condition and (BuildsTable.channel eq channel.name)
-                if (search != null) condition = condition and (
-                    (BuildsTable.versionName like "%$search%") or
-                    (BuildsTable.branch like "%$search%")
-                )
-                condition
-            }
+            .where { listCondition(projectId, channel, search, flavor, stand) }
             .count().toInt()
+    }
+
+    override suspend fun filterValues(projectId: UUID): BuildFilterValues = dbQuery {
+        // Архивные и устаревшие сборки в журнал не попадают — их значения
+        // дали бы чип, по которому ничего не найдётся.
+        val visible = BuildsTable.selectAll().where {
+            (BuildsTable.projectId eq projectId) and
+                (BuildsTable.status inList listOf(BuildStatus.ACTIVE.name, BuildStatus.MANDATORY.name))
+        }.toList()
+        fun byFrequency(values: List<String?>) = values.filterNotNull()
+            .groupingBy { it }.eachCount()
+            .entries.sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .map { it.key }
+        BuildFilterValues(
+            flavors = byFrequency(visible.map { it[BuildsTable.flavor] }),
+            stands = byFrequency(visible.map { it[BuildsTable.stand] }),
+        )
+    }
+
+    private fun listCondition(
+        projectId: UUID, channel: ReleaseChannel?, search: String?, flavor: String?, stand: String?,
+    ): Op<Boolean> {
+        var condition = BuildsTable.projectId eq projectId
+        if (channel != null) condition = condition and (BuildsTable.channel eq channel.name)
+        if (flavor != null) condition = condition and (BuildsTable.flavor eq flavor)
+        if (stand != null) condition = condition and (BuildsTable.stand eq stand)
+        if (search != null) condition = condition and (
+            (BuildsTable.versionName like "%$search%") or
+            (BuildsTable.branch like "%$search%")
+        )
+        return condition
     }
 
     override suspend fun delete(buildId: UUID) = dbQuery {
@@ -140,5 +161,6 @@ class BuildRepositoryImpl : BuildRepository {
         status = BuildStatus.valueOf(this[BuildsTable.status]),
         expiryDate = this[BuildsTable.expiryDate],
         isLatestInChannel = this[BuildsTable.isLatestInChannel],
+        stand = this[BuildsTable.stand],
     )
 }

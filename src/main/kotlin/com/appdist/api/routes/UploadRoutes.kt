@@ -6,7 +6,9 @@ import com.appdist.domain.model.BuildEnvironment
 import com.appdist.domain.model.ReleaseChannel
 import com.appdist.domain.model.UserRole
 import com.appdist.domain.service.BuildService
+import com.appdist.domain.service.MAX_STAND_LENGTH
 import com.appdist.domain.service.UploadRequest
+import com.appdist.domain.service.normalizeBuildTag
 import com.appdist.plugins.API_KEY_AUTH
 import com.appdist.plugins.AuthPrincipal
 import com.appdist.plugins.JWT_AUTH
@@ -35,6 +37,7 @@ fun Route.uploadRoutes(buildService: BuildService) {
             var channelRaw = "INTERNAL"
             var buildType = "debug"
             var flavor: String? = null
+            var stand: String? = null
             var branch: String? = null
             var commitHash: String? = null
             var changelog: String? = null
@@ -49,6 +52,7 @@ fun Route.uploadRoutes(buildService: BuildService) {
                                 "channel" -> channelRaw = part.value.uppercase()
                                 "buildType" -> buildType = part.value
                                 "flavor" -> flavor = part.value
+                                "stand" -> stand = part.value
                                 "branch" -> branch = part.value
                                 "commitHash" -> commitHash = part.value
                                 "changelog" -> changelog = part.value
@@ -111,6 +115,14 @@ fun Route.uploadRoutes(buildService: BuildService) {
                     return@post
                 }
 
+                if ((normalizeBuildTag(stand)?.length ?: 0) > MAX_STAND_LENGTH) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse("INVALID_FIELD", "stand must be at most $MAX_STAND_LENGTH characters"),
+                    )
+                    return@post
+                }
+
                 val build = runCatching {
                     buildService.uploadBuild(
                         UploadRequest(
@@ -120,6 +132,7 @@ fun Route.uploadRoutes(buildService: BuildService) {
                             channel = channel,
                             buildType = buildType,
                             flavor = flavor,
+                            stand = stand,
                             branch = branch,
                             commitHash = commitHash,
                             changelog = changelog,

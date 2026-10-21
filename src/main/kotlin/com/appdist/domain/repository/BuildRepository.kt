@@ -14,11 +14,24 @@ interface BuildRepository {
         search: String? = null,
         page: Int = 0,
         limit: Int = 20,
+        flavor: String? = null,
+        stand: String? = null,
     ): List<Build>
     suspend fun listRecent(workspaceId: UUID, limit: Int = 20): List<Build>
     suspend fun update(buildId: UUID, changelog: String?, status: BuildStatus?): Build?
-    suspend fun countByProject(projectId: UUID, channel: ReleaseChannel? = null, search: String? = null): Int
+    suspend fun countByProject(
+        projectId: UUID,
+        channel: ReleaseChannel? = null,
+        search: String? = null,
+        flavor: String? = null,
+        stand: String? = null,
+    ): Int
+    /** Виды и стенды, встречающиеся у видимых сборок проекта, — для быстрых фильтров. */
+    suspend fun filterValues(projectId: UUID): BuildFilterValues
     suspend fun delete(buildId: UUID)
     suspend fun findByChecksum(checksum: String): Build?
     suspend fun unsetLatestInChannel(projectId: UUID, channel: ReleaseChannel)
 }
+
+/** Значения отсортированы по числу сборок: самые частые — первыми. */
+data class BuildFilterValues(val flavors: List<String>, val stands: List<String>)

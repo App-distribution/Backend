@@ -69,6 +69,7 @@ fun Application.testModule(
         route("/api/v1") {
             authRoutes(authService)
             uploadRoutes(buildService)
+            publicRoutes(projectRepo, buildService)
             projectRoutes(projectRepo, auditRepo, workspaceRepo)
             workspaceRoutes(workspaceRepo)
             userRoutes(userRepo)

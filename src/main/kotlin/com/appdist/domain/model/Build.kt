@@ -32,4 +32,6 @@ data class Build(
     val status: BuildStatus,
     val expiryDate: Instant?,
     val isLatestInChannel: Boolean,
+    /** Стенд, на который смотрит сборка (l10, dev3, prod…). У старых сборок — null. */
+    val stand: String? = null,
 )

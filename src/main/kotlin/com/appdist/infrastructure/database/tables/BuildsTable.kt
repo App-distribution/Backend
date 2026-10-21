@@ -10,6 +10,7 @@ object BuildsTable : Table("builds") {
     val versionCode = long("version_code")
     val buildNumber = varchar("build_number", 100).nullable()
     val flavor = varchar("flavor", 100).nullable()
+    val stand = varchar("stand", 32).nullable()
     val buildType = varchar("build_type", 50)
     val environment = varchar("environment", 50)
     val channel = varchar("channel", 50)

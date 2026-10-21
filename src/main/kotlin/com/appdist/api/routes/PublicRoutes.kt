@@ -1,5 +1,6 @@
 package com.appdist.api.routes
 
+import com.appdist.api.dto.BuildFiltersDto
 import com.appdist.api.dto.DownloadUrlResponse
 import com.appdist.api.dto.ErrorResponse
 import com.appdist.api.dto.toDto
@@ -59,12 +60,28 @@ fun Route.publicRoutes(projectRepository: ProjectRepository, buildService: Build
             val page = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0
             val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
             val now = Clock.System.now()
-            val builds = buildService.listBuilds(projectId, channel, search, page, limit)
+            val flavor = call.request.queryParameters["flavor"]
+            val stand = call.request.queryParameters["stand"]
+            val builds = buildService.listBuilds(projectId, channel, search, page, limit, flavor, stand)
                 .filter { build ->
                     (build.status == BuildStatus.ACTIVE || build.status == BuildStatus.MANDATORY) &&
                         (build.expiryDate == null || build.expiryDate > now)
                 }
             call.respond(builds.map { it.toDto() })
+        }
+
+        get("/projects/{projectId}/build-filters") {
+            val projectId = call.parameters["projectId"]?.let {
+                runCatching { UUID.fromString(it) }.getOrNull()
+            } ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse("INVALID_ID", "Invalid UUID format"),
+            )
+            projectRepository.findById(projectId)
+                ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found"))
+
+            val values = buildService.buildFilterValues(projectId)
+            call.respond(BuildFiltersDto(values.flavors, values.stands))
         }
 
         get("/builds/{buildId}") {

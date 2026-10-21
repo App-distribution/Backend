@@ -10,6 +10,7 @@ data class BuildDto(
     val versionCode: Long,
     val buildNumber: String?,
     val flavor: String?,
+    val stand: String? = null,
     val buildType: String,
     val environment: String,
     val channel: String,
@@ -45,6 +46,7 @@ fun com.appdist.domain.model.Build.toDto() = BuildDto(
     versionCode = versionCode,
     buildNumber = buildNumber,
     flavor = flavor,
+    stand = stand,
     buildType = buildType,
     environment = environment.name,
     channel = channel.name,
@@ -63,3 +65,6 @@ fun com.appdist.domain.model.Build.toDto() = BuildDto(
     expiryDate = expiryDate?.toEpochMilliseconds(),
     isLatestInChannel = isLatestInChannel,
 )
+
+@Serializable
+data class BuildFiltersDto(val flavors: List<String>, val stands: List<String>)

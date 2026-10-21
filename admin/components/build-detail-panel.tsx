@@ -74,7 +74,8 @@ export function BuildDetailPanel({
           <DetailItem label="Загружена" value={formatDateTime(build.uploadDate)} />
           <DetailItem label="Размер" value={formatBytes(build.fileSize)} />
           <DetailItem label="Тип сборки" value={build.buildType} />
-          <DetailItem label="Вариант" value={build.flavor ?? "—"} />
+          <DetailItem label="Вид сборки" value={build.flavor ?? "—"} />
+          <DetailItem label="Стенд" value={build.stand ?? "—"} />
           <DetailItem label="Ветка" value={build.branch ?? "—"} />
           <DetailItem label="Коммит" value={truncateMiddle(build.commitHash, 5)} mono />
           <DetailItem label="Контрольная сумма" value={truncateMiddle(build.checksumSha256, 8)} mono />
